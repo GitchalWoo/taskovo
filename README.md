@@ -24,3 +24,7 @@ bun run src/index.ts
 # Run on a schedule (cron mode)
 bun run src/index.ts --serve
 ```
+
+## License
+
+MIT
