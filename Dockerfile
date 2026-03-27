@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1-alpine AS build
+FROM docker.io/oven/bun:1-alpine AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY src/ src/
 COPY tsconfig.json ./
 
 # Runtime stage
-FROM oven/bun:1-alpine
+FROM docker.io/oven/bun:1-alpine
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/src src
 COPY --from=build /app/package.json .
 
-RUN mkdir -p /data/state
+RUN mkdir -p /data/state && chown bun:bun /data/state
 
 USER bun
 

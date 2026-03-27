@@ -126,19 +126,24 @@ Two modes:
 |------|------|--------|--------|
 | 1 | Scaffold project, install deps, Dockerfile | Bun + Docker work together | ✅ Done |
 | 2 | Config loader + logger | Env vars load, structured logging works | ✅ Done |
-| 3 | Todoist client — fetch all tasks | API connection, auth, data parsing | ✅ Written, needs live test |
-| 4 | Digest builder — group + format | Business logic, timezone handling | ✅ Written, needs live test |
-| 5 | Email sender — send via Resend | Outbound email works | ✅ Written, needs live test |
-| 6 | Wire it all in index.ts (run-once mode) | End-to-end pipeline | ✅ Written, needs live test |
-| 7 | Add cron scheduler (--serve mode) | Long-running container mode | ✅ Written, needs live test |
-| 8 | Docker build + compose up | Full containerized deployment | Not started |
+| 3 | Todoist client — fetch all tasks | API connection, auth, data parsing | ✅ Done |
+| 4 | Digest builder — group + format | Business logic, timezone handling | ✅ Done |
+| 5 | Email sender — send via Resend | Outbound email works | ✅ Done |
+| 6 | Wire it all in index.ts (run-once mode) | End-to-end pipeline | ✅ Done |
+| 7 | Add cron scheduler (--serve mode) | Long-running container mode | ✅ Done |
+| 8 | Docker build + compose up | Full containerized deployment | ✅ Done |
 
 ### Progress Notes
 - **Steps 1–7 scaffolded in one pass** — all source files created, typecheck passes (`bun x tsc --noEmit` clean)
-- Code is written but **not tested against live APIs** — steps 3–7 need `.env` with real credentials and manual/integration testing
 - Dependencies installed: `@doist/todoist-api-typescript`, `croner`, `resend`, `yaml`
 - Todoist client uses raw Sync API (`fetch`) rather than the SDK — intentional to match the POC plan's sync approach
-- Next: set up `.env` with real credentials, run one-shot mode, verify end-to-end pipeline, then Docker build
+- **Steps 3–8 live-tested on 27 Mar 2026** — full end-to-end pipeline verified:
+  - Todoist Sync API: fetched 139 tasks, 11 projects in one call
+  - Digest built and email sent successfully (~2s total)
+  - Docker image: 160MB (multi-stage, `oven/bun:1-alpine`)
+  - Compose up: container starts in serve mode, cron scheduled correctly
+  - Fixed: Dockerfile uses fully-qualified image refs (`docker.io/oven/bun`), `/data/state` owned by `bun` user
+- **POC complete** — all success criteria met
 
 ## Not In Scope (POC)
 - Rule engine
