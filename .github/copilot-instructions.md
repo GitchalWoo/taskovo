@@ -1,5 +1,10 @@
 # Taskovo — Life Automation System
 
+## Copilot Rules
+- **Never create memory files.** This file (`.github/copilot-instructions.md`) is the only context — update it directly.
+- **Always update this file** when non-obvious changes happen (API quirks discovered, workarounds, architectural decisions, gotchas).
+- **Never store trivial information in context** — no file structures, no technology names deducible from `package.json`/`tsconfig.json`, no repetition of config values. Store only the *why* behind decisions, not the *what* that's already in the code.
+
 ## Vision
 Taskovo is a personal life automation tooling system. It orchestrates tasks, notifications, and decision-making by combining external SaaS integrations with a local embedded AI model. The system is designed to run containerized on any Linux device or Docker-based automation platform.
 
@@ -169,3 +174,21 @@ Chose TypeScript/Bun for:
     └── [Error Handler]
           └── Create Todoist task with error details
 ```
+
+## Development Notes (Non-Obvious)
+
+### Environment
+- Bun PATH requires `$HOME/.bun/bin`
+- Container runtime is **podman** (not docker), use `podman-compose`
+- Dockerfile needs fully-qualified image refs (`docker.io/oven/bun:1-alpine`) for podman
+- `/data/state` must be `chown bun:bun` before `USER bun` in Dockerfile
+- `/data/state` ENOENT warning is expected locally — path only exists in container
+
+### Todoist API Quirks
+- Uses raw fetch against Sync API v1, not the SDK
+- `due.date` field contains time when present (has "T" in string) — there's no separate `datetime` field in V1
+- `is_recurring` is snake_case (matching raw API), not camelCase
+- `priority` values: 4=p1(highest), 3=p2, 2=p3, 1=normal
+- `child_order` on projects gives sidebar sort order; `parent_id` for nesting
+- Location reminders: Sync `reminders_location` returns undefined; use REST `GET /api/v1/location_reminders` instead — returns `{ results: [...] }` with `item_id` linking to tasks
+- `duration` field: `{ amount, unit: "minute" | "day" }`, nullable
