@@ -5,15 +5,23 @@ import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
 import { Cron } from "croner";
 
-async function runDigest(): Promise<void> {
+async function runDigest(dryRun: boolean): Promise<void> {
   const start = Date.now();
-  logger.info("Starting weekly digest run");
+  logger.info("Starting weekly digest run", { dryRun });
 
   const config = loadConfig();
 
-  const { tasks, projects } = await fetchTodoistData(config);
-  const digest = buildDigest(tasks, projects, config.timezone);
-  await sendDigestEmail(config, digest);
+  const { tasks, projects, locations } = await fetchTodoistData(config);
+  const digest = buildDigest(tasks, projects, config.timezone, locations);
+
+  if (dryRun) {
+    logger.info("Dry run — skipping email send");
+    console.log(`\n--- ${digest.subject} ---\n`);
+    console.log(digest.text);
+    console.log();
+  } else {
+    await sendDigestEmail(config, digest);
+  }
 
   const duration = Date.now() - start;
   logger.info("Digest run completed", { durationMs: duration });
@@ -24,12 +32,13 @@ async function main(): Promise<void> {
   setLogLevel(config.logLevel);
 
   const serveMode = process.argv.includes("--serve");
+  const dryRun = process.argv.includes("--dry-run");
 
   if (serveMode) {
     logger.info("Starting in serve mode", { cron: config.digestCron });
     const job = new Cron(config.digestCron, async () => {
       try {
-        await runDigest();
+        await runDigest(false);
       } catch (error) {
         logger.error("Digest run failed", { error: String(error) });
       }
@@ -48,9 +57,9 @@ async function main(): Promise<void> {
       process.exit(0);
     });
   } else {
-    logger.info("Running in one-shot mode");
+    logger.info("Running in one-shot mode", { dryRun });
     try {
-      await runDigest();
+      await runDigest(dryRun);
     } catch (error) {
       logger.error("Digest run failed", { error: String(error) });
       process.exit(1);

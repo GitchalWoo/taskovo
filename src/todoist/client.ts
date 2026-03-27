@@ -1,10 +1,17 @@
 import type { Config } from "../config";
-import type { TodoistTask, TodoistProject, SyncState } from "./types";
+import type { TodoistTask, TodoistProject, TodoistLocationReminder, SyncState } from "./types";
 import { logger } from "../utils/logger";
+
+export interface ProjectInfo {
+  name: string;
+  order: number;
+  parentId: string | null;
+}
 
 export interface TodoistData {
   tasks: TodoistTask[];
-  projects: Map<string, string>; // id -> name
+  projects: Map<string, ProjectInfo>; // id -> project info
+  locations: Map<string, string>; // item_id -> location name
 }
 
 export async function fetchTodoistData(config: Config): Promise<TodoistData> {
@@ -33,9 +40,13 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
   // Save sync token for next run
   await saveSyncToken(config.stateDir, data.sync_token);
 
-  const projects = new Map<string, string>();
+  const projects = new Map<string, ProjectInfo>();
   for (const project of data.projects ?? []) {
-    projects.set(project.id, project.name);
+    projects.set(project.id, {
+      name: project.name,
+      order: project.child_order ?? 0,
+      parentId: project.parent_id ?? null,
+    });
   }
 
   const tasks: TodoistTask[] = (data.items ?? []).map((item: Record<string, unknown>) => ({
@@ -45,6 +56,7 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
     projectId: item.project_id as string,
     priority: item.priority as number,
     due: item.due as TodoistTask["due"],
+    duration: (item.duration as TodoistTask["duration"]) ?? null,
     labels: (item.labels as string[]) ?? [],
     isCompleted: (item.checked as boolean) ?? false,
     createdAt: item.added_at as string,
@@ -52,7 +64,31 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
 
   logger.info("Fetched Todoist data", { taskCount: tasks.length, projectCount: projects.size });
 
-  return { tasks, projects };
+  const locations = await fetchLocationReminders(config.todoistApiToken);
+
+  return { tasks, projects, locations };
+}
+
+async function fetchLocationReminders(token: string): Promise<Map<string, string>> {
+  const locations = new Map<string, string>();
+  try {
+    const response = await fetch("https://api.todoist.com/api/v1/location_reminders", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      logger.warn("Failed to fetch location reminders", { status: response.status });
+      return locations;
+    }
+    const data = (await response.json()) as { results: TodoistLocationReminder[] };
+    for (const loc of data.results) {
+      if (!loc.is_deleted) {
+        locations.set(loc.item_id, loc.name);
+      }
+    }
+  } catch (error) {
+    logger.warn("Failed to fetch location reminders", { error: String(error) });
+  }
+  return locations;
 }
 
 async function loadSyncToken(stateDir: string): Promise<string | null> {

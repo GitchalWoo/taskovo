@@ -36,3 +36,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Taskovo state files
 state/
 /data/
+
+# Exploratory scripts
+scripts/

@@ -3,8 +3,12 @@ export interface TodoistDue {
   timezone: string | null;
   string: string;
   lang: string;
-  isRecurring: boolean;
-  datetime?: string;
+  is_recurring: boolean;
+}
+
+export interface TodoistDuration {
+  amount: number;
+  unit: "minute" | "day";
 }
 
 export interface TodoistTask {
@@ -14,6 +18,7 @@ export interface TodoistTask {
   projectId: string;
   priority: number;
   due: TodoistDue | null;
+  duration: TodoistDuration | null;
   labels: string[];
   isCompleted: boolean;
   createdAt: string;
@@ -31,4 +36,15 @@ export interface TodoistLabel {
 
 export interface SyncState {
   token: string;
+}
+
+export interface TodoistLocationReminder {
+  id: string;
+  item_id: string;
+  name: string;
+  loc_lat: string;
+  loc_long: string;
+  loc_trigger: string;
+  radius: number;
+  is_deleted: boolean;
 }
