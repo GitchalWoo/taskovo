@@ -1,0 +1,11 @@
+services:
+  taskovo:
+    build: .
+    container_name: taskovo
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - taskovo-state:/data/state
+
+volumes:
+  taskovo-state:
