@@ -1,12 +1,12 @@
 export interface Config {
   todoistApiToken: string;
   resendApiKey: string;
-  digestRecipientEmail: string;
   digestFromEmail: string;
   timezone: string;
   digestCron: string;
   stateDir: string;
   logLevel: "debug" | "info" | "warn" | "error";
+  digestEmailBlacklist: Set<string>;
 }
 
 const required = (name: string): string => {
@@ -17,15 +17,22 @@ const required = (name: string): string => {
   return value;
 };
 
+function parseEmailList(value: string | undefined): Set<string> {
+  if (!value) return new Set();
+  return new Set(
+    value.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean),
+  );
+}
+
 export function loadConfig(): Config {
   return {
     todoistApiToken: required("TODOIST_API_TOKEN"),
     resendApiKey: required("RESEND_API_KEY"),
-    digestRecipientEmail: required("DIGEST_RECIPIENT_EMAIL"),
     digestFromEmail: required("DIGEST_FROM_EMAIL"),
     timezone: process.env["TIMEZONE"] ?? "Europe/Warsaw",
     digestCron: process.env["DIGEST_CRON"] ?? "0 19 * * 0",
     stateDir: process.env["STATE_DIR"] ?? "/data/state",
     logLevel: (process.env["LOG_LEVEL"] as Config["logLevel"]) ?? "info",
+    digestEmailBlacklist: parseEmailList(process.env["DIGEST_EMAIL_BLACKLIST"]),
   };
 }

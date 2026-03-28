@@ -34,6 +34,18 @@ export interface TodoistLabel {
   name: string;
 }
 
+export interface TodoistCollaborator {
+  id: string;
+  email: string;
+  fullName: string;
+  timezone: string;
+}
+
+export interface TodoistCollaboratorState {
+  userId: string;
+  projectId: string;
+}
+
 export interface SyncState {
   token: string;
 }

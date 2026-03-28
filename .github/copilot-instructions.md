@@ -3,6 +3,7 @@
 ## Copilot Rules
 - **Never create memory files.** This file (`.github/copilot-instructions.md`) is the only context — update it directly.
 - **Always update this file** when non-obvious changes happen (API quirks discovered, workarounds, architectural decisions, gotchas).
+- **Always update this file after implementation changes** — remove outdated information, add new decisions, and ensure context reflects the current state of the codebase.
 - **Never store trivial information in context** — no file structures, no technology names deducible from `package.json`/`tsconfig.json`, no repetition of config values. Store only the *why* behind decisions, not the *what* that's already in the code.
 
 ## Vision
@@ -192,3 +193,14 @@ Chose TypeScript/Bun for:
 - `child_order` on projects gives sidebar sort order; `parent_id` for nesting
 - Location reminders: Sync `reminders_location` returns undefined; use REST `GET /api/v1/location_reminders` instead — returns `{ results: [...] }` with `item_id` linking to tasks
 - `duration` field: `{ amount, unit: "minute" | "day" }`, nullable
+- Sync `user` resource type returns the **raw API token** in the response — never log or persist the `user` object in production
+
+### Todoist Collaborators & Per-Person Digests
+- Sync resource types `collaborators` + `collaborator_states` return all people across all shared projects in one call
+- `collaborators` returns: `{ id, email, full_name, timezone }` — emails ARE available
+- `collaborator_states` maps `user_id` → `project_id` (with `is_deleted`, `state` fields)
+- REST alternative: `GET /api/v1/projects/{id}/collaborators` returns `{ results: [{ id, name, email }] }` per project
+- Digest recipients are auto-discovered from collaborators — no hardcoded recipient email
+- Owner (authenticated user) gets all tasks; other collaborators get only tasks from their shared projects
+- `DIGEST_EMAIL_BLACKLIST` env var: comma-separated emails to exclude from receiving digests
+- Tasks have `responsible_uid` and `assigned_by_uid` fields linking to collaborator IDs — not used for digest filtering (project membership is the filter), but available for future assignment-based rules

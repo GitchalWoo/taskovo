@@ -1,9 +1,53 @@
 import { loadConfig } from "./config";
 import { setLogLevel, logger } from "./utils/logger";
 import { fetchTodoistData } from "./todoist/client";
+import type { ProjectInfo } from "./todoist/client";
+import type { TodoistTask, TodoistCollaborator, TodoistCollaboratorState } from "./todoist/types";
 import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
 import { Cron } from "croner";
+
+interface RecipientDigest {
+  email: string;
+  name: string;
+  tasks: TodoistTask[];
+}
+
+/** Build a per-person task list based on project membership.
+ *  - Owner gets ALL tasks (shared + private projects).
+ *  - Collaborators get only tasks from shared projects they belong to. */
+function buildRecipientLists(
+  tasks: TodoistTask[],
+  collaborators: TodoistCollaborator[],
+  collaboratorStates: TodoistCollaboratorState[],
+  ownerId: string,
+): RecipientDigest[] {
+  // Map: userId -> set of project IDs they can see
+  const projectsByUser = new Map<string, Set<string>>();
+  for (const cs of collaboratorStates) {
+    const existing = projectsByUser.get(cs.userId) ?? new Set();
+    existing.add(cs.projectId);
+    projectsByUser.set(cs.userId, existing);
+  }
+
+  const recipients: RecipientDigest[] = [];
+
+  for (const collab of collaborators) {
+    if (collab.id === ownerId) {
+      // Owner gets everything
+      recipients.push({ email: collab.email, name: collab.fullName, tasks });
+    } else {
+      // Collaborator gets only tasks from their shared projects
+      const allowedProjects = projectsByUser.get(collab.id);
+      if (!allowedProjects || allowedProjects.size === 0) continue;
+      const filtered = tasks.filter((t) => allowedProjects.has(t.projectId));
+      if (filtered.length === 0) continue;
+      recipients.push({ email: collab.email, name: collab.fullName, tasks: filtered });
+    }
+  }
+
+  return recipients;
+}
 
 async function runDigest(dryRun: boolean): Promise<void> {
   const start = Date.now();
@@ -11,20 +55,41 @@ async function runDigest(dryRun: boolean): Promise<void> {
 
   const config = loadConfig();
 
-  const { tasks, projects, locations } = await fetchTodoistData(config);
-  const digest = buildDigest(tasks, projects, config.timezone, locations);
+  const { tasks, projects, locations, collaborators, collaboratorStates, ownerId } =
+    await fetchTodoistData(config);
 
-  if (dryRun) {
-    logger.info("Dry run — skipping email send");
-    console.log(`\n--- ${digest.subject} ---\n`);
-    console.log(digest.text);
-    console.log();
-  } else {
-    await sendDigestEmail(config, digest);
+  const allRecipients = buildRecipientLists(tasks, collaborators, collaboratorStates, ownerId);
+  const recipients = allRecipients.filter(
+    (r) => !config.digestEmailBlacklist.has(r.email.toLowerCase()),
+  );
+
+  if (recipients.length < allRecipients.length) {
+    const skipped = allRecipients.filter((r) => config.digestEmailBlacklist.has(r.email.toLowerCase()));
+    logger.info("Blacklisted recipients skipped", { skipped: skipped.map((r) => r.name) });
+  }
+
+  logger.info("Built per-person digests", {
+    recipientCount: recipients.length,
+    recipients: recipients.map((r) => r.name),
+  });
+
+  for (const recipient of recipients) {
+    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations);
+
+    if (dryRun) {
+      console.log(`\n--- ${recipient.name} (${recipient.email}) ---`);
+      console.log(`--- ${digest.subject} ---`);
+      console.log(`Tasks: ${recipient.tasks.length}\n`);
+      console.log(digest.text);
+      console.log();
+    } else {
+      await sendDigestEmail(config, digest, recipient.email);
+      logger.info("Sent digest", { to: recipient.name, taskCount: recipient.tasks.length });
+    }
   }
 
   const duration = Date.now() - start;
-  logger.info("Digest run completed", { durationMs: duration });
+  logger.info("Digest run completed", { durationMs: duration, recipientCount: recipients.length });
 }
 
 async function main(): Promise<void> {

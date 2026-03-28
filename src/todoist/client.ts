@@ -1,5 +1,5 @@
 import type { Config } from "../config";
-import type { TodoistTask, TodoistProject, TodoistLocationReminder, SyncState } from "./types";
+import type { TodoistTask, TodoistProject, TodoistLocationReminder, TodoistCollaborator, TodoistCollaboratorState, SyncState } from "./types";
 import { logger } from "../utils/logger";
 
 export interface ProjectInfo {
@@ -12,6 +12,9 @@ export interface TodoistData {
   tasks: TodoistTask[];
   projects: Map<string, ProjectInfo>; // id -> project info
   locations: Map<string, string>; // item_id -> location name
+  collaborators: TodoistCollaborator[];
+  collaboratorStates: TodoistCollaboratorState[];
+  ownerId: string; // the authenticated user's id
 }
 
 export async function fetchTodoistData(config: Config): Promise<TodoistData> {
@@ -27,7 +30,7 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
     },
     body: JSON.stringify({
       sync_token: syncToken ?? "*",
-      resource_types: ["items", "projects"],
+      resource_types: ["items", "projects", "collaborators", "collaborator_states", "user"],
     }),
   });
 
@@ -66,7 +69,25 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
 
   const locations = await fetchLocationReminders(config.todoistApiToken);
 
-  return { tasks, projects, locations };
+  const collaborators: TodoistCollaborator[] = (data.collaborators ?? []).map((c: Record<string, unknown>) => ({
+    id: c.id as string,
+    email: c.email as string,
+    fullName: c.full_name as string,
+    timezone: (c.timezone as string) ?? "UTC",
+  }));
+
+  const collaboratorStates: TodoistCollaboratorState[] = (data.collaborator_states ?? [])
+    .filter((cs: Record<string, unknown>) => !cs.is_deleted)
+    .map((cs: Record<string, unknown>) => ({
+      userId: cs.user_id as string,
+      projectId: cs.project_id as string,
+    }));
+
+  const ownerId = (data.user?.id as string) ?? "";
+
+  logger.info("Fetched collaborators", { count: collaborators.length, stateCount: collaboratorStates.length });
+
+  return { tasks, projects, locations, collaborators, collaboratorStates, ownerId };
 }
 
 async function fetchLocationReminders(token: string): Promise<Map<string, string>> {
