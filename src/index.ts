@@ -1,7 +1,6 @@
 import { loadConfig } from "./config";
 import { setLogLevel, logger } from "./utils/logger";
 import { fetchTodoistData } from "./todoist/client";
-import type { ProjectInfo } from "./todoist/client";
 import type { TodoistTask, TodoistCollaborator, TodoistCollaboratorState } from "./todoist/types";
 import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
@@ -59,9 +58,7 @@ async function runDigest(dryRun: boolean): Promise<void> {
     await fetchTodoistData(config);
 
   const allRecipients = buildRecipientLists(tasks, collaborators, collaboratorStates, ownerId);
-  const recipients = allRecipients.filter(
-    (r) => !config.digestEmailBlacklist.has(r.email.toLowerCase()),
-  );
+  const recipients = allRecipients.filter((r) => !config.digestEmailBlacklist.has(r.email.toLowerCase()));
 
   if (recipients.length < allRecipients.length) {
     const skipped = allRecipients.filter((r) => config.digestEmailBlacklist.has(r.email.toLowerCase()));

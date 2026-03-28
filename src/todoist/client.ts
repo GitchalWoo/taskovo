@@ -1,5 +1,11 @@
 import type { Config } from "../config";
-import type { TodoistTask, TodoistProject, TodoistLocationReminder, TodoistCollaborator, TodoistCollaboratorState, SyncState } from "./types";
+import type {
+  TodoistTask,
+  TodoistLocationReminder,
+  TodoistCollaborator,
+  TodoistCollaboratorState,
+  SyncState,
+} from "./types";
 import { logger } from "../utils/logger";
 
 export interface ProjectInfo {
@@ -38,6 +44,7 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
     throw new Error(`Todoist API error: ${response.status} ${response.statusText}`);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw Todoist Sync API response shape
   const data = (await response.json()) as Record<string, any>;
 
   // Save sync token for next run
@@ -69,12 +76,14 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
 
   const locations = await fetchLocationReminders(config.todoistApiToken);
 
-  const collaborators: TodoistCollaborator[] = (data.collaborators ?? []).map((c: Record<string, unknown>) => ({
-    id: c.id as string,
-    email: c.email as string,
-    fullName: c.full_name as string,
-    timezone: (c.timezone as string) ?? "UTC",
-  }));
+  const collaborators: TodoistCollaborator[] = (data.collaborators ?? []).map(
+    (c: Record<string, unknown>) => ({
+      id: c.id as string,
+      email: c.email as string,
+      fullName: c.full_name as string,
+      timezone: (c.timezone as string) ?? "UTC",
+    }),
+  );
 
   const collaboratorStates: TodoistCollaboratorState[] = (data.collaborator_states ?? [])
     .filter((cs: Record<string, unknown>) => !cs.is_deleted)
@@ -85,7 +94,10 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
 
   const ownerId = (data.user?.id as string) ?? "";
 
-  logger.info("Fetched collaborators", { count: collaborators.length, stateCount: collaboratorStates.length });
+  logger.info("Fetched collaborators", {
+    count: collaborators.length,
+    stateCount: collaboratorStates.length,
+  });
 
   return { tasks, projects, locations, collaborators, collaboratorStates, ownerId };
 }

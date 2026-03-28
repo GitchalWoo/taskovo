@@ -38,16 +38,16 @@ Recipients are auto-discovered from the Todoist Sync API:
 
 ## Configuration
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `TODOIST_API_TOKEN` | Yes | Todoist API token |
-| `RESEND_API_KEY` | Yes | Resend email API key |
-| `DIGEST_FROM_EMAIL` | Yes | Sender email address |
-| `DIGEST_EMAIL_BLACKLIST` | No | Comma-separated emails to skip |
-| `TIMEZONE` | No | Default: `Europe/Warsaw` |
-| `DIGEST_CRON` | No | Cron schedule, default: `0 19 * * 0` (Sunday 7pm) |
-| `STATE_DIR` | No | Sync token storage, default: `/data/state` |
-| `LOG_LEVEL` | No | `debug` / `info` / `warn` / `error` |
+| Variable                 | Required | Description                                       |
+| ------------------------ | -------- | ------------------------------------------------- |
+| `TODOIST_API_TOKEN`      | Yes      | Todoist API token                                 |
+| `RESEND_API_KEY`         | Yes      | Resend email API key                              |
+| `DIGEST_FROM_EMAIL`      | Yes      | Sender email address                              |
+| `DIGEST_EMAIL_BLACKLIST` | No       | Comma-separated emails to skip                    |
+| `TIMEZONE`               | No       | Default: `Europe/Warsaw`                          |
+| `DIGEST_CRON`            | No       | Cron schedule, default: `0 19 * * 0` (Sunday 7pm) |
+| `STATE_DIR`              | No       | Sync token storage, default: `/data/state`        |
+| `LOG_LEVEL`              | No       | `debug` / `info` / `warn` / `error`               |
 
 ## License
 

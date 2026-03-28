@@ -52,7 +52,9 @@ export function buildDigest(
       const hasTime = dateStr.includes("T");
       const dueDate = new Date(dateStr);
       const durationMinutes = t.duration
-        ? t.duration.unit === "minute" ? t.duration.amount : t.duration.amount * 24 * 60
+        ? t.duration.unit === "minute"
+          ? t.duration.amount
+          : t.duration.amount * 24 * 60
         : null;
       const locationName = locations?.get(t.id) ?? null;
       return {
@@ -88,8 +90,8 @@ export function buildDigest(
 
   // Sort projects by Todoist order
   const projectOrder = buildProjectOrder(projects);
-  const sortedEntries = [...byProject.entries()].sort((a, b) =>
-    (projectOrder.get(a[0]) ?? Infinity) - (projectOrder.get(b[0]) ?? Infinity)
+  const sortedEntries = [...byProject.entries()].sort(
+    (a, b) => (projectOrder.get(a[0]) ?? Infinity) - (projectOrder.get(b[0]) ?? Infinity),
   );
 
   const templateData: TemplateData = {

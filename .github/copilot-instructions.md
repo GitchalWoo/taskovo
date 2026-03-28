@@ -1,12 +1,14 @@
 # Taskovo — Life Automation System
 
 ## Copilot Rules
+
 - **Never create memory files.** This file (`.github/copilot-instructions.md`) is the only context — update it directly.
 - **Always update this file** when non-obvious changes happen (API quirks discovered, workarounds, architectural decisions, gotchas).
 - **Always update this file after implementation changes** — remove outdated information, add new decisions, and ensure context reflects the current state of the codebase.
-- **Never store trivial information in context** — no file structures, no technology names deducible from `package.json`/`tsconfig.json`, no repetition of config values. Store only the *why* behind decisions, not the *what* that's already in the code.
+- **Never store trivial information in context** — no file structures, no technology names deducible from `package.json`/`tsconfig.json`, no repetition of config values. Store only the _why_ behind decisions, not the _what_ that's already in the code.
 
 ## Vision
+
 Taskovo is a personal life automation tooling system. It orchestrates tasks, notifications, and decision-making by combining external SaaS integrations with a local embedded AI model. The system is designed to run containerized on any Linux device or Docker-based automation platform.
 
 Todoist serves as both the primary data source AND the persistence/state layer. Think of it as a "processing inbox" — tasks flow in (manually, from integrations, from cron rules), and Taskovo's rule engine picks them up, processes them, and produces outputs (new tasks, notifications, label changes, completions).
@@ -14,6 +16,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 ## Core Architecture
 
 ### Data Source & State: Todoist (Polling)
+
 - Primary knowledge base, task source, AND persistence layer
 - **Todoist API v1** (`api.todoist.com/api/v1/`) — unified Sync + REST API
 - Sync endpoint (`POST /api/v1/sync`) for efficient reads (single call returns all data) and batched writes
@@ -30,11 +33,13 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - API auth: Bearer token via Authorization header
 
 ### Notifications: Resend
+
 - Outbound communication to other participants via Resend SaaS (email-based notifications)
 - Used to notify people about events, task assignments, reminders, escalations
 - Templates for different notification types
 
 ### Rule Engine
+
 - Locally configured rule engine with multiple rulesets
 - Rules defined in local config files (YAML)
 - Each ruleset targets tasks via flexible filters: project, label (present OR absent), content, due date, priority, or any combination
@@ -51,6 +56,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
   - Both coexist — implicit AI runs as a first pass, then explicit rules fire on enriched data
 
 ### Rule Engine — Use Cases
+
 1. **Birthday prep**: Task contains "birthday" → create new task dated 14 days before: "Buy gift for {person}"
 2. **External integration ingest**: Finax API returns overdue invoice → create high-priority task in Todoist
 3. **Cross-project triggers**: Task created in "Project-X/Triggers" project → picked up by automation ruleset
@@ -60,6 +66,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 7. **Weekly digest**: Cron rule (e.g., Sunday evening) → gather all tasks due this week → AI summarizes → send email digest ("Night out on Friday, dentist Tuesday, project deadline Wednesday")
 
 ### Embedded Local AI Model
+
 - Local inference via llama.cpp (HTTP server mode) — lightest overhead
 - Super-small model: DeepSeek R1 1.5B quantized (Q4_K_M, ~1GB RAM)
 - Configurable: user can opt into larger models if hardware allows
@@ -72,6 +79,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Fallback: rules work without AI — AI enriches but is not required
 
 ### External Integration Adapters
+
 - Each integration is a YAML-configured polling adapter
 - Adapters are declarative: define endpoint, auth, polling schedule, and a mapping of response → Todoist task
 - Adapters run on their own cron schedule, independent of the Todoist polling loop
@@ -85,7 +93,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
   adapters:
     - name: finax-overdue
       type: http
-      schedule: "0 9 * * *"  # daily at 9am
+      schedule: "0 9 * * *" # daily at 9am
       request:
         url: "https://api.finax.com/invoices?status=overdue"
         method: GET
@@ -103,6 +111,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
   ```
 
 ## Tech Stack
+
 - **Language**: TypeScript
 - **Runtime**: Bun (native TS, fast startup, built-in test runner, built-in .env support)
 - **Container**: Docker, multi-stage — `oven/bun:1-alpine` for build, slim for runtime
@@ -118,6 +127,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - **Key dependencies**: `@doist/todoist-api-typescript` (official SDK), `resend` (official SDK), `yaml` (YAML parsing), `croner` (cron scheduling)
 
 ## Key Design Principles
+
 - **OPEN SOURCE REPO — all code is public. Zero secrets in code, config files, logs, or commit history.**
 - Container-first: everything runs in Docker
 - Privacy-first: local AI model, no data leaves the device unless explicitly configured
@@ -130,6 +140,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Extensible: new integrations = new polling adapters that produce tasks
 
 ## Security Requirements (Open Source)
+
 - **`.env` is in `.gitignore` — NEVER committed**. Only `.env.example` with placeholder values.
 - **No secrets in code**: API tokens, emails, domain names — all via env vars
 - **No secrets in logs**: logger must redact/mask any token or key that appears in output
@@ -142,6 +153,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 ## Language Decision (Decided: TypeScript + Bun)
 
 Chose TypeScript/Bun for:
+
 - Official SDKs for both Todoist and Resend
 - Native TypeScript execution (no build step for dev)
 - Type safety for rule engine validation
@@ -179,6 +191,7 @@ Chose TypeScript/Bun for:
 ## Development Notes (Non-Obvious)
 
 ### Environment
+
 - Bun PATH requires `$HOME/.bun/bin`
 - Container runtime is **podman** (not docker), use `podman-compose`
 - Dockerfile needs fully-qualified image refs (`docker.io/oven/bun:1-alpine`) for podman
@@ -186,6 +199,7 @@ Chose TypeScript/Bun for:
 - `/data/state` ENOENT warning is expected locally — path only exists in container
 
 ### Todoist API Quirks
+
 - Uses raw fetch against Sync API v1, not the SDK
 - `due.date` field contains time when present (has "T" in string) — there's no separate `datetime` field in V1
 - `is_recurring` is snake_case (matching raw API), not camelCase
@@ -196,6 +210,7 @@ Chose TypeScript/Bun for:
 - Sync `user` resource type returns the **raw API token** in the response — never log or persist the `user` object in production
 
 ### Todoist Collaborators & Per-Person Digests
+
 - Sync resource types `collaborators` + `collaborator_states` return all people across all shared projects in one call
 - `collaborators` returns: `{ id, email, full_name, timezone }` — emails ARE available
 - `collaborator_states` maps `user_id` → `project_id` (with `is_deleted`, `state` fields)
@@ -206,6 +221,7 @@ Chose TypeScript/Bun for:
 - Tasks have `responsible_uid` and `assigned_by_uid` fields linking to collaborator IDs — not used for digest filtering (project membership is the filter), but available for future assignment-based rules
 
 ### Digest Email Templates
+
 - Templates use Nunjucks (`.njk` files in `src/digest/templates/`)
 - `digest.html.njk` for HTML email, `digest.text.njk` for plain text fallback
 - Subject is the email subject line — do NOT repeat it inside the email body

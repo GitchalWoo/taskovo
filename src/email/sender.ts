@@ -3,7 +3,11 @@ import type { Config } from "../config";
 import type { DigestOutput } from "../digest/builder";
 import { logger } from "../utils/logger";
 
-export async function sendDigestEmail(config: Config, digest: DigestOutput, recipientEmail: string): Promise<void> {
+export async function sendDigestEmail(
+  config: Config,
+  digest: DigestOutput,
+  recipientEmail: string,
+): Promise<void> {
   const resend = new Resend(config.resendApiKey);
 
   logger.info("Sending digest email", { to: "[redacted]" });

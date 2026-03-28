@@ -7,7 +7,22 @@
     "start": "bun run src/index.ts",
     "start:serve": "bun run src/index.ts --serve",
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "bunx tsc --noEmit",
+    "lint": "bunx eslint .",
+    "lint:fix": "bunx eslint . --fix",
+    "format": "bunx prettier --write .",
+    "format:check": "bunx prettier --check .",
+    "check": "bun run typecheck && bun run lint && bun run format:check",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,njk}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@doist/todoist-api-typescript": "^4.0.3",
@@ -17,8 +32,15 @@
     "yaml": "^2.7.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
-    "@types/nunjucks": "^3.2.6"
+    "@types/nunjucks": "^3.2.6",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.2"
   },
   "peerDependencies": {
     "typescript": "^5"

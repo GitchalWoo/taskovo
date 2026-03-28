@@ -20,7 +20,10 @@ const required = (name: string): string => {
 function parseEmailList(value: string | undefined): Set<string> {
   if (!value) return new Set();
   return new Set(
-    value.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean),
+    value
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
   );
 }
 
