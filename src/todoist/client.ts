@@ -21,6 +21,7 @@ export interface TodoistData {
   collaborators: TodoistCollaborator[];
   collaboratorStates: TodoistCollaboratorState[];
   ownerId: string; // the authenticated user's id
+  ownerLang: string; // the authenticated user's Todoist interface language (e.g. "pl", "en")
 }
 
 export async function fetchTodoistData(config: Config): Promise<TodoistData> {
@@ -93,13 +94,14 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
     }));
 
   const ownerId = (data.user?.id as string) ?? "";
+  const ownerLang = (data.user?.lang as string) ?? "en";
 
   logger.info("Fetched collaborators", {
     count: collaborators.length,
     stateCount: collaboratorStates.length,
   });
 
-  return { tasks, projects, locations, collaborators, collaboratorStates, ownerId };
+  return { tasks, projects, locations, collaborators, collaboratorStates, ownerId, ownerLang };
 }
 
 async function fetchLocationReminders(token: string): Promise<Map<string, string>> {

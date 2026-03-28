@@ -54,7 +54,7 @@ async function runDigest(dryRun: boolean): Promise<void> {
 
   const config = loadConfig();
 
-  const { tasks, projects, locations, collaborators, collaboratorStates, ownerId } =
+  const { tasks, projects, locations, collaborators, collaboratorStates, ownerId, ownerLang } =
     await fetchTodoistData(config);
 
   const allRecipients = buildRecipientLists(tasks, collaborators, collaboratorStates, ownerId);
@@ -71,7 +71,7 @@ async function runDigest(dryRun: boolean): Promise<void> {
   });
 
   for (const recipient of recipients) {
-    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations);
+    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations, ownerLang);
 
     if (dryRun) {
       console.log(`\n--- ${recipient.name} (${recipient.email}) ---`);

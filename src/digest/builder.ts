@@ -1,5 +1,6 @@
 import nunjucks from "nunjucks";
 import path from "path";
+import fs from "fs";
 import type { TodoistTask } from "../todoist/types";
 import type { ProjectInfo } from "../todoist/client";
 
@@ -31,19 +32,27 @@ interface TemplateData {
 }
 
 const TEMPLATES_DIR = path.join(import.meta.dir, "templates");
-const nunjucksEnv = nunjucks.configure(TEMPLATES_DIR, { autoescape: true });
+const DEFAULT_LANG = "en";
+
+function resolveTemplateDir(lang: string): string {
+  const langDir = path.join(TEMPLATES_DIR, lang);
+  if (fs.existsSync(langDir)) return langDir;
+  return path.join(TEMPLATES_DIR, DEFAULT_LANG);
+}
 
 export function buildDigest(
   tasks: TodoistTask[],
   projects: Map<string, ProjectInfo>,
   timezone: string,
   locations?: Map<string, string>,
+  lang: string = DEFAULT_LANG,
 ): DigestOutput {
   const now = new Date();
   const rangeStart = startOfDay(now);
   const rangeEnd = daysFromNow(now, 7);
 
-  const dateRange = formatDateRange(rangeStart, rangeEnd);
+  const locale = langToLocale(lang);
+  const dateRange = formatDateRange(rangeStart, rangeEnd, locale);
 
   const grouped = tasks
     .filter((t) => !t.isCompleted && t.due)
@@ -60,7 +69,7 @@ export function buildDigest(
       return {
         content: t.content,
         dueDate,
-        dueString: formatTaskDue(dueDate, hasTime, timezone),
+        dueString: formatTaskDue(dueDate, hasTime, timezone, locale),
         priority: t.priority,
         projectName: projects.get(t.projectId)?.name ?? "Inbox",
         isOverdue: dueDate < startOfDay(now),
@@ -99,6 +108,9 @@ export function buildDigest(
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };
+
+  const templateDir = resolveTemplateDir(lang);
+  const nunjucksEnv = nunjucks.configure(templateDir, { autoescape: true });
 
   const rawHtml = nunjucksEnv.render("digest.html.njk", templateData);
   const text = nunjucksEnv.render("digest.text.njk", templateData);
@@ -163,15 +175,24 @@ function daysFromNow(date: Date, days: number): Date {
   return d;
 }
 
-function formatDateRange(start: Date, end: Date): string {
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
-  return `${start.toLocaleDateString("en-GB", opts)} – ${end.toLocaleDateString("en-GB", opts)}`;
+const LANG_LOCALE_MAP: Record<string, string> = {
+  en: "en-GB",
+  pl: "pl-PL",
+};
+
+function langToLocale(lang: string): string {
+  return LANG_LOCALE_MAP[lang] ?? "en-GB";
 }
 
-function formatTaskDue(date: Date, hasTime: boolean, _timezone: string): string {
+function formatDateRange(start: Date, end: Date, locale: string): string {
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+  return `${start.toLocaleDateString(locale, opts)} – ${end.toLocaleDateString(locale, opts)}`;
+}
+
+function formatTaskDue(date: Date, hasTime: boolean, _timezone: string, locale: string): string {
   const dayOpts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
-  const dayStr = date.toLocaleDateString("en-GB", dayOpts);
+  const dayStr = date.toLocaleDateString(locale, dayOpts);
   if (!hasTime) return dayStr;
-  const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const timeStr = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return `${dayStr}, ${timeStr}`;
 }

@@ -1,0 +1,18 @@
+{% if overdue.length > 0 %}
+⚠ Zaległe
+{% for task in overdue %}
+  • {{ task.content }}{% if task.dueString %} — {{ task.dueString }}{% endif %}{% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}{% if task.flag %} {{ task.flag }}{% endif %}{% if task.isRecurring %} 🔁{% endif %}
+{% if task.location %}      📍 {{ task.location }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% for project in projects %}
+{{ project.name }}
+{% for task in project.tasks %}
+  • {{ task.content }}{% if task.dueString %} — {{ task.dueString }}{% endif %}{% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}{% if task.flag %} {{ task.flag }}{% endif %}{% if task.isRecurring %} 🔁{% endif %}
+{% if task.location %}      📍 {{ task.location }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+—
+Wysłano przez Taskovo z ❤️

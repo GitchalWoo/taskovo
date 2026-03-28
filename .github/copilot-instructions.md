@@ -200,6 +200,7 @@ Chose TypeScript/Bun for:
 
 ### Todoist API Quirks
 
+- **NEVER reference Todoist API v9 or v2** — those are deprecated/old. The only API is **v1** (`api.todoist.com/api/v1/`). All docs, URLs, and code must target v1.
 - Uses raw fetch against Sync API v1, not the SDK
 - `due.date` field contains time when present (has "T" in string) — there's no separate `datetime` field in V1
 - `is_recurring` is snake_case (matching raw API), not camelCase
@@ -208,6 +209,8 @@ Chose TypeScript/Bun for:
 - Location reminders: Sync `reminders_location` returns undefined; use REST `GET /api/v1/location_reminders` instead — returns `{ results: [...] }` with `item_id` linking to tasks
 - `duration` field: `{ amount, unit: "minute" | "day" }`, nullable
 - Sync `user` resource type returns the **raw API token** in the response — never log or persist the `user` object in production
+- `user.lang` field: ISO language code (e.g. `"pl"`, `"en"`) — the user's Todoist interface language. Available only for the authenticated owner, NOT for collaborators. Useful for selecting locale-specific templates.
+- `due.lang` field on tasks: language the due date string was parsed in (e.g. `"pl"` → `"każdego 15"`)
 
 ### Todoist Collaborators & Per-Person Digests
 
@@ -222,7 +225,10 @@ Chose TypeScript/Bun for:
 
 ### Digest Email Templates
 
-- Templates use Nunjucks (`.njk` files in `src/digest/templates/`)
+- Templates use Nunjucks (`.njk` files in `src/digest/templates/{lang}/`)
+- Language folders: `en/` (default fallback), `pl/`, etc. — resolved from `user.lang` at runtime
+- If a language folder doesn't exist, falls back to `en/`
+- Date formatting is also locale-aware via `LANG_LOCALE_MAP` in `builder.ts` (e.g. `pl` → `pl-PL`)
 - `digest.html.njk` for HTML email, `digest.text.njk` for plain text fallback
 - Subject is the email subject line — do NOT repeat it inside the email body
 - `location` and `description` are separate fields on the task model; location shows with 📍, description is available but not rendered in templates
