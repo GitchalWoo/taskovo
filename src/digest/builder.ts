@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import type { TodoistTask } from "../todoist/types";
 import type { ProjectInfo } from "../todoist/client";
+import type { WeatherForecast } from "../weather/client";
 
 export interface DigestOutput {
   subject: string;
@@ -24,10 +25,24 @@ interface GroupedTask {
   flag: string | null;
 }
 
+interface TemplateForecastDay {
+  date: string;
+  dayOfWeek: string;
+  tempMax: number;
+  tempMin: number;
+  condition: string;
+}
+
+interface TemplateForecast {
+  locationName: string | null;
+  days: TemplateForecastDay[];
+}
+
 /** Template data passed to Nunjucks */
 interface TemplateData {
   dateRange: string;
   weekSummary: string | null;
+  forecast: TemplateForecast | null;
   overdue: GroupedTask[];
   projects: { name: string; tasks: GroupedTask[] }[];
 }
@@ -48,6 +63,7 @@ export function buildDigest(
   locations?: Map<string, string>,
   lang: string = DEFAULT_LANG,
   weekSummary: string | null = null,
+  forecast: WeatherForecast | null = null,
 ): DigestOutput {
   const now = new Date();
   const rangeStart = startOfDay(now);
@@ -105,9 +121,23 @@ export function buildDigest(
     (a, b) => (projectOrder.get(a[0]) ?? Infinity) - (projectOrder.get(b[0]) ?? Infinity),
   );
 
+  const templateForecast: TemplateForecast | null = forecast
+    ? {
+        locationName: forecast.locationName,
+        days: forecast.days.map((d) => ({
+          date: d.date,
+          dayOfWeek: new Date(d.date).toLocaleDateString(locale, { weekday: "short" }),
+          tempMax: d.tempMax,
+          tempMin: d.tempMin,
+          condition: d.condition,
+        })),
+      }
+    : null;
+
   const templateData: TemplateData = {
     dateRange,
     weekSummary,
+    forecast: templateForecast,
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };

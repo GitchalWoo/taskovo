@@ -5,6 +5,7 @@ import type { TodoistTask, TodoistCollaborator, TodoistCollaboratorState } from 
 import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
 import { generateWeekSummary } from "./ai/client";
+import { fetchWeekForecast, localizeWeather } from "./weather/client";
 import { Cron } from "croner";
 
 interface RecipientDigest {
@@ -55,8 +56,9 @@ async function runDigest(dryRun: boolean): Promise<void> {
 
   const config = loadConfig();
 
-  const { tasks, projects, locations, collaborators, collaboratorStates, ownerId, ownerLang } =
-    await fetchTodoistData(config);
+  const [todoistData, forecast] = await Promise.all([fetchTodoistData(config), fetchWeekForecast(config)]);
+  const { tasks, projects, locations, collaborators, collaboratorStates, ownerId, ownerLang } = todoistData;
+  const localizedForecast = forecast ? localizeWeather(forecast, ownerLang) : null;
 
   const allRecipients = buildRecipientLists(tasks, collaborators, collaboratorStates, ownerId);
   const recipients = allRecipients.filter((r) => !config.digestEmailBlacklist.has(r.email.toLowerCase()));
@@ -89,9 +91,17 @@ async function runDigest(dryRun: boolean): Promise<void> {
         priority: t.priority,
       }));
 
-    const weekSummary = await generateWeekSummary(config, summaryTasks, ownerLang);
+    const weekSummary = await generateWeekSummary(config, summaryTasks, ownerLang, localizedForecast);
 
-    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations, ownerLang, weekSummary);
+    const digest = buildDigest(
+      recipient.tasks,
+      projects,
+      config.timezone,
+      locations,
+      ownerLang,
+      weekSummary,
+      localizedForecast,
+    );
 
     if (dryRun) {
       console.log(`\n--- ${recipient.name} (${recipient.email}) ---`);

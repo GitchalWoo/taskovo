@@ -10,6 +10,9 @@ export interface Config {
   llmBaseUrl: string | null;
   llmApiKey: string | null;
   llmModel: string;
+  weatherLocation: string | null;
+  weatherLatitude: string | null;
+  weatherLongitude: string | null;
 }
 
 const required = (name: string): string => {
@@ -43,5 +46,8 @@ export function loadConfig(): Config {
     llmBaseUrl: process.env["LLM_BASE_URL"] ?? null,
     llmApiKey: process.env["LLM_API_KEY"] ?? null,
     llmModel: process.env["LLM_MODEL"] ?? "nemotron-cascade-2",
+    weatherLocation: process.env["WEATHER_LOCATION"] ?? null,
+    weatherLatitude: process.env["WEATHER_LATITUDE"] ?? null,
+    weatherLongitude: process.env["WEATHER_LONGITUDE"] ?? null,
   };
 }

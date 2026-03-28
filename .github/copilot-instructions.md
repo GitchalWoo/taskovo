@@ -84,6 +84,18 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
   - Simple extraction (extract date, person name, amount from task text)
 - NOT used for: complex reasoning, long-context summarization, multi-step planning
 
+### Digest Providers (Optional Data Sources)
+
+- The digest email is a **composition of independent data sources** — each is optional and degrades gracefully
+- Pattern: config-gated → fetch → `data | null` → template renders conditionally
+- Providers are NOT adapters (adapters produce Todoist tasks) and NOT rules (rules act on tasks)
+- Each provider is a `src/{name}/client.ts` exporting one async function
+- Fetched in parallel with Todoist data in `runDigest()`, passed as optional params to `buildDigest()`
+- No plugin registry or framework needed — just functions and template sections
+- Current providers:
+  - **AI week summary** (`src/ai/client.ts`): LLM generates 2-3 sentence overview. Gated by `LLM_BASE_URL`.
+  - **Weather forecast** (`src/weather/client.ts`): 7-day forecast via Open-Meteo API (free, no key). Two config modes: `WEATHER_LOCATION=Warsaw` (geocoded via Open-Meteo geocoding API) or explicit `WEATHER_LATITUDE` + `WEATHER_LONGITUDE` (overrides location). Uses WMO weather codes for condition labels. 15s timeout on forecast, 10s on geocoding — failure never blocks digest.
+
 ### External Integration Adapters
 
 - Each integration is a YAML-configured polling adapter

@@ -1,4 +1,5 @@
 import type { Config } from "../config";
+import type { WeatherForecast } from "../weather/client";
 import { logger } from "../utils/logger";
 
 interface ChatMessage {
@@ -11,8 +12,8 @@ interface ChatCompletionResponse {
 }
 
 const SYSTEM_PROMPTS: Record<string, string> = {
-  en: `You are a concise personal assistant. Given a list of tasks for the upcoming week, write a brief 2-3 sentence natural-language summary of what the week looks like. Mention key events, deadlines, and priorities. Be warm but brief. Do not list tasks — summarize them. Do not use markdown formatting.`,
-  pl: `Jesteś zwięzłym osobistym asystentem. Na podstawie listy zadań na nadchodzący tydzień, napisz krótkie podsumowanie w 2-3 zdaniach opisujące jak wygląda ten tydzień. Wspomnij o kluczowych wydarzeniach, terminach i priorytetach. Bądź ciepły, ale zwięzły. Nie wypisuj zadań — podsumuj je. Nie używaj formatowania markdown. Bez ikonek`,
+  en: `You are a concise personal assistant. Given a list of tasks and optionally a weather forecast for the upcoming week, write a brief 2-3 sentence natural-language summary of what the week looks like. Mention key events, deadlines, and priorities. If weather is provided, weave it in naturally (e.g. note rain on days with outdoor plans). Be warm but brief. Do not list tasks — summarize them. Do not use markdown formatting.`,
+  pl: `Jesteś zwięzłym osobistym asystentem. Na podstawie listy zadań i opcjonalnie prognozy pogody na nadchodzący tydzień, napisz krótkie podsumowanie w 2-3 zdaniach opisujące jak wygląda ten tydzień. Wspomnij o kluczowych wydarzeniach, terminach i priorytetach. Jeśli podano pogodę, wpleć ją naturalnie (np. wspomnij o deszczu w dniach z planami na zewnątrz). Bądź ciepły, ale zwięzły. Nie wypisuj zadań — podsumuj je. Nie używaj formatowania markdown. Bez ikonek`,
 };
 
 interface TaskSummaryInput {
@@ -22,17 +23,27 @@ interface TaskSummaryInput {
   priority: number;
 }
 
-function buildUserPrompt(tasks: TaskSummaryInput[]): string {
+function buildUserPrompt(tasks: TaskSummaryInput[], forecast: WeatherForecast | null): string {
   const lines = tasks.map(
     (t) => `- [${t.project}] ${t.content} (due: ${t.dueDate}, priority: ${t.priority})`,
   );
-  return `Tasks for the upcoming week:\n${lines.join("\n")}`;
+  let prompt = `Tasks for the upcoming week:\n${lines.join("\n")}`;
+
+  if (forecast && forecast.days.length > 0) {
+    const weatherLines = forecast.days.map(
+      (d) => `- ${d.date}: ${d.condition}, ${d.tempMax}°/${d.tempMin}°C`,
+    );
+    prompt += `\n\nWeather forecast:\n${weatherLines.join("\n")}`;
+  }
+
+  return prompt;
 }
 
 export async function generateWeekSummary(
   config: Config,
   tasks: TaskSummaryInput[],
   lang: string,
+  forecast: WeatherForecast | null = null,
 ): Promise<string | null> {
   if (!config.llmBaseUrl) {
     logger.debug("LLM not configured, skipping week summary");
@@ -46,7 +57,7 @@ export async function generateWeekSummary(
   const systemPrompt = SYSTEM_PROMPTS[lang] ?? SYSTEM_PROMPTS["en"]!;
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
-    { role: "user", content: buildUserPrompt(tasks) },
+    { role: "user", content: buildUserPrompt(tasks, forecast) },
   ];
 
   const url = `${config.llmBaseUrl.replace(/\/+$/, "")}/v1/chat/completions`;

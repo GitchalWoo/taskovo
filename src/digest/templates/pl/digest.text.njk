@@ -2,6 +2,13 @@
 Podsumowanie: {{ weekSummary }}
 
 {% endif %}
+{% if forecast %}
+Pogoda na 7 dni{% if forecast.locationName %} — {{ forecast.locationName }}{% endif %}
+{% for day in forecast.days %}
+  {{ day.dayOfWeek }}  {{ day.date.slice(5) }}  {{ day.condition }}  {{ day.tempMax }}°/{{ day.tempMin }}°
+{% endfor %}
+
+{% endif %}
 {% if overdue.length > 0 %}
 ⚠ Zaległe
 {% for task in overdue %}

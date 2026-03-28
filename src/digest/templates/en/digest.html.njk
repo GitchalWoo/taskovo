@@ -7,6 +7,22 @@
     </div>
     {% endif %}
 
+    {% if forecast %}
+    <div style="margin-bottom: 24px; padding: 14px 16px; background-color: #f0f9ff; border-radius: 8px; font-size: 13px; color: #333;">
+      <div style="font-weight: 600; margin-bottom: 8px;">7-day forecast{% if forecast.locationName %} — {{ forecast.locationName }}{% endif %}</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+        {% for day in forecast.days %}
+        <div style="flex: 1; min-width: 65px; text-align: center; padding: 4px 2px;">
+          <div style="font-size: 13px; font-weight: 600; color: #333;">{{ day.dayOfWeek }}</div>
+          <div style="font-size: 11px; color: #888; margin-top: 1px;">{{ day.date.slice(5) }}</div>
+          <div style="font-size: 12px; margin-top: 4px;">{{ day.condition }}</div>
+          <div style="font-size: 12px; color: #444; margin-top: 2px;">{{ day.tempMax }}° / {{ day.tempMin }}°</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     {% if overdue.length > 0 %}
     <div style="margin-bottom: 24px;">
       <div style="font-size: 16px; font-weight: 600; color: #c53030; margin-bottom: 10px;">Overdue</div>
