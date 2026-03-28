@@ -13,6 +13,7 @@ export const SYSTEM_PROMPTS: Record<string, string> = {
     `- Summarize — do not list tasks one by one.`,
     `- Only mention weather if it's relevant to a task (e.g. outdoor plans + rain). Otherwise ignore it.`,
     `- No markdown, no bullet points, no emojis, no greetings, no sign-offs.`,
+    `- Do not start with "Summary:" or any preamble — the label is added by the template.`,
     `- Write in plain natural English.`,
   ].join("\n"),
   pl: [
@@ -25,6 +26,7 @@ export const SYSTEM_PROMPTS: Record<string, string> = {
     `- Podsumowuj — nie wypisuj zadań po kolei.`,
     `- Wspomnij o pogodzie tylko jeśli jest istotna dla zadania (np. plany na zewnątrz + deszcz). W przeciwnym razie pomiń.`,
     `- Bez markdowna, bez list, bez ikonek, bez powitań, bez pożegnań.`,
+    `- Nie zaczynaj od "Podsumowanie:" ani żadnego wstępu — etykieta jest dodawana przez szablon.`,
     `- Pisz naturalną polszczyzną.`,
   ].join("\n"),
 };

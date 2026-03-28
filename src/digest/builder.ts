@@ -5,6 +5,7 @@ import type { TodoistTask } from "../todoist/types";
 import type { ProjectInfo } from "../todoist/client";
 import type { WeatherForecast } from "../weather/client";
 import type { F1Schedule } from "../f1/client";
+import type { LocalEvents } from "../events/client";
 
 export interface DigestOutput {
   subject: string;
@@ -53,12 +54,22 @@ interface TemplateF1Event {
   sessions: TemplateF1Session[];
 }
 
+interface TemplateLocalEvent {
+  title: string;
+  url: string;
+  categories: string;
+  dateText: string;
+  district: string | null;
+}
+
 /** Template data passed to Nunjucks */
 interface TemplateData {
   dateRange: string;
   weekSummary: string | null;
   forecast: TemplateForecast | null;
   f1: TemplateF1Event[] | null;
+  localEvents: TemplateLocalEvent[] | null;
+  localEventsUrl: string | null;
   overdue: GroupedTask[];
   projects: { name: string; tasks: GroupedTask[] }[];
 }
@@ -81,6 +92,7 @@ export function buildDigest(
   weekSummary: string | null = null,
   forecast: WeatherForecast | null = null,
   f1Schedule: F1Schedule | null = null,
+  localEvents: LocalEvents | null = null,
 ): DigestOutput {
   const now = new Date();
   const rangeStart = startOfDay(now);
@@ -175,11 +187,24 @@ export function buildDigest(
         }))
       : null;
 
+  const templateLocalEvents: TemplateLocalEvent[] | null =
+    localEvents && localEvents.events.length > 0
+      ? localEvents.events.map((e) => ({
+          title: e.title,
+          url: e.url,
+          categories: e.categories.join(", "),
+          dateText: e.dateText,
+          district: e.district,
+        }))
+      : null;
+
   const templateData: TemplateData = {
     dateRange,
     weekSummary,
     forecast: templateForecast,
     f1: templateF1,
+    localEvents: templateLocalEvents,
+    localEventsUrl: localEvents?.sourceUrl ?? null,
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };

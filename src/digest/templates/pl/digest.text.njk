@@ -35,5 +35,16 @@ Pogoda na 7 dni{% if forecast.locationName %} — {{ forecast.locationName }}{% 
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% if localEvents %}
+📍 Wydarzenia w okolicy
+{% for event in localEvents %}
+  • {{ event.title }} — {{ event.dateText }}{% if event.categories %} ({{ event.categories }}){% endif %}
+    {{ event.url }}
+{% endfor %}
+{% if localEventsUrl %}
+Wszystkie: {{ localEventsUrl }}
+{% endif %}
+
+{% endif %}
 —
 Wysłano przez Taskovo z ❤️

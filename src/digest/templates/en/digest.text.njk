@@ -35,5 +35,16 @@ Summary: {{ weekSummary }}
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% if localEvents %}
+📍 Local Events This Week
+{% for event in localEvents %}
+  • {{ event.title }} — {{ event.dateText }}{% if event.categories %} ({{ event.categories }}){% endif %}
+    {{ event.url }}
+{% endfor %}
+{% if localEventsUrl %}
+See all: {{ localEventsUrl }}
+{% endif %}
+
+{% endif %}
 —
 Sent by Taskovo with ❤️

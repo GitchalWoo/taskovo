@@ -15,6 +15,8 @@ export interface Config {
   weatherLatitude: string | null;
   weatherLongitude: string | null;
   f1Schedule: boolean;
+  eventsEnabled: boolean;
+  eventsDistrict: string | null;
 }
 
 const required = (name: string): string => {
@@ -53,5 +55,7 @@ export function loadConfig(): Config {
     weatherLatitude: process.env["WEATHER_LATITUDE"] ?? null,
     weatherLongitude: process.env["WEATHER_LONGITUDE"] ?? null,
     f1Schedule: process.env["F1_SCHEDULE"]?.toLowerCase() === "true",
+    eventsEnabled: process.env["EVENTS_ENABLED"]?.toLowerCase() === "true",
+    eventsDistrict: process.env["EVENTS_DISTRICT"] ?? null,
   };
 }

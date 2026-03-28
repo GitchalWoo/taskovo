@@ -48,6 +48,27 @@ Recipients are auto-discovered from the Todoist Sync API:
 | `DIGEST_CRON`            | No       | Cron schedule, default: `0 19 * * 0` (Sunday 7pm) |
 | `STATE_DIR`              | No       | Sync token storage, default: `/data/state`        |
 | `LOG_LEVEL`              | No       | `debug` / `info` / `warn` / `error`               |
+| `LLM_BASE_URL`           | No       | OpenAI-compatible endpoint for AI week summary    |
+| `LLM_API_KEY`            | No       | API key for the LLM endpoint                      |
+| `LLM_MODEL`              | No       | Model name, default: `nemotron-cascade-2`         |
+| `LLM_TIMEOUT`            | No       | LLM timeout in seconds, default: `120`            |
+| `WEATHER_LOCATION`       | No       | City name for 7-day forecast (e.g. `Warsaw`)      |
+| `WEATHER_LATITUDE`       | No       | Explicit latitude (overrides `WEATHER_LOCATION`)  |
+| `WEATHER_LONGITUDE`      | No       | Explicit longitude (overrides `WEATHER_LOCATION`) |
+| `F1_SCHEDULE`            | No       | Set `true` to include F1 race schedule            |
+| `EVENTS_ENABLED`         | No       | Set `true` to include local events from waw4free  |
+| `EVENTS_DISTRICT`        | No       | waw4free district filter (e.g. `pragapld`)        |
+
+## Digest providers
+
+The digest email is composed from independent, optional data sources. Each degrades gracefully — if disabled or failing, the digest sends without that section.
+
+| Provider         | Source                | Gated by              | API key needed |
+| ---------------- | --------------------- | --------------------- | -------------- |
+| AI week summary  | Any OpenAI-compatible | `LLM_BASE_URL`        | Optional       |
+| Weather forecast | Open-Meteo            | `WEATHER_LOCATION`    | No             |
+| F1 schedule      | Jolpica (Ergast)      | `F1_SCHEDULE=true`    | No             |
+| Local events     | waw4free.pl (scraper) | `EVENTS_ENABLED=true` | No             |
 
 ## License
 

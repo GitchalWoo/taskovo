@@ -96,6 +96,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
   - **AI week summary** (`src/ai/client.ts`): LLM generates 2-3 sentence overview. Gated by `LLM_BASE_URL`.
   - **Weather forecast** (`src/weather/client.ts`): 7-day forecast via Open-Meteo API (free, no key). Two config modes: `WEATHER_LOCATION=Warsaw` (geocoded via Open-Meteo geocoding API) or explicit `WEATHER_LATITUDE` + `WEATHER_LONGITUDE` (overrides location). Uses WMO weather codes for condition labels. 15s timeout on forecast, 10s on geocoding — failure never blocks digest.
   - **F1 schedule** (`src/f1/client.ts`): Shows upcoming F1 race weekends (sessions in next 7 days) via Jolpica API (free Ergast successor, no key). Gated by `F1_SCHEDULE=true`. Returns race name, circuit, and all session times (FP1–3, Qualifying, Sprint/SprintQualifying, Race). 15s timeout — failure never blocks digest. API: `https://api.jolpi.ca/ergast/f1/current.json`.
+  - **Local events** (`src/events/client.ts`): Scrapes free local events from waw4free.pl for the next 7 days. Gated by `EVENTS_ENABLED=true`. Optional `EVENTS_DISTRICT` for district filtering (e.g. `pragapld`). HTML scraper — parses `div.box` containers for title, URL, categories, date, district. No API key needed. 15s timeout — failure never blocks digest. Events rendered after tasks in digest.
 
 ### External Integration Adapters
 
