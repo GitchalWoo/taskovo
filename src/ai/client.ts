@@ -1,6 +1,7 @@
 import type { Config } from "../config";
 import type { WeatherForecast } from "../weather/client";
 import { logger } from "../utils/logger";
+import { SYSTEM_PROMPTS } from "./prompts";
 
 interface ChatMessage {
   role: "system" | "user";
@@ -10,11 +11,6 @@ interface ChatMessage {
 interface ChatCompletionResponse {
   choices: { message: { content: string; reasoning?: string }; finish_reason: string }[];
 }
-
-const SYSTEM_PROMPTS: Record<string, string> = {
-  en: `You are a concise personal assistant. Given a list of tasks and optionally a weather forecast for the upcoming week, write a brief 2-3 sentence natural-language summary of what the week looks like. Mention key events, deadlines, and priorities. If weather is provided, weave it in naturally (e.g. note rain on days with outdoor plans). Be warm but brief. Do not list tasks — summarize them. Do not use markdown formatting.`,
-  pl: `Jesteś zwięzłym osobistym asystentem. Na podstawie listy zadań i opcjonalnie prognozy pogody na nadchodzący tydzień, napisz krótkie podsumowanie w 2-3 zdaniach opisujące jak wygląda ten tydzień. Wspomnij o kluczowych wydarzeniach, terminach i priorytetach. Jeśli podano pogodę, wpleć ją naturalnie (np. wspomnij o deszczu w dniach z planami na zewnątrz). Bądź ciepły, ale zwięzły. Nie wypisuj zadań — podsumuj je. Nie używaj formatowania markdown. Bez ikonek`,
-};
 
 interface TaskSummaryInput {
   content: string;
