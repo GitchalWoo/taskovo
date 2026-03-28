@@ -4,6 +4,7 @@ import { fetchTodoistData } from "./todoist/client";
 import type { TodoistTask, TodoistCollaborator, TodoistCollaboratorState } from "./todoist/types";
 import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
+import { generateWeekSummary } from "./ai/client";
 import { Cron } from "croner";
 
 interface RecipientDigest {
@@ -71,7 +72,26 @@ async function runDigest(dryRun: boolean): Promise<void> {
   });
 
   for (const recipient of recipients) {
-    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations, ownerLang);
+    // Build task summary inputs for LLM (non-completed tasks with due dates in the next 7 days)
+    const now = new Date();
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const summaryTasks = recipient.tasks
+      .filter((t) => !t.isCompleted && t.due)
+      .filter((t) => {
+        const d = new Date(t.due!.date);
+        return d >= now && d <= weekEnd;
+      })
+      .map((t) => ({
+        content: t.content,
+        dueDate: t.due!.date,
+        project: projects.get(t.projectId)?.name ?? "Inbox",
+        priority: t.priority,
+      }));
+
+    const weekSummary = await generateWeekSummary(config, summaryTasks, ownerLang);
+
+    const digest = buildDigest(recipient.tasks, projects, config.timezone, locations, ownerLang, weekSummary);
 
     if (dryRun) {
       console.log(`\n--- ${recipient.name} (${recipient.email}) ---`);

@@ -7,5 +7,16 @@ services:
     volumes:
       - taskovo-state:/data/state
 
+  # Optional: local LLM via Ollama — uncomment to use
+  # Set LLM_BASE_URL=http://ollama:11434 in .env
+  # ollama:
+  #   image: docker.io/ollama/ollama:latest
+  #   container_name: taskovo-ollama
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ollama-models:/root/.ollama
+  #   # Pull model on first run: docker exec taskovo-ollama ollama pull llama3.2
+
 volumes:
   taskovo-state:
+  # ollama-models:

@@ -7,6 +7,9 @@ export interface Config {
   stateDir: string;
   logLevel: "debug" | "info" | "warn" | "error";
   digestEmailBlacklist: Set<string>;
+  llmBaseUrl: string | null;
+  llmApiKey: string | null;
+  llmModel: string;
 }
 
 const required = (name: string): string => {
@@ -37,5 +40,8 @@ export function loadConfig(): Config {
     stateDir: process.env["STATE_DIR"] ?? "/data/state",
     logLevel: (process.env["LOG_LEVEL"] as Config["logLevel"]) ?? "info",
     digestEmailBlacklist: parseEmailList(process.env["DIGEST_EMAIL_BLACKLIST"]),
+    llmBaseUrl: process.env["LLM_BASE_URL"] ?? null,
+    llmApiKey: process.env["LLM_API_KEY"] ?? null,
+    llmModel: process.env["LLM_MODEL"] ?? "nemotron-cascade-2",
   };
 }

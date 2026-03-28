@@ -27,6 +27,7 @@ interface GroupedTask {
 /** Template data passed to Nunjucks */
 interface TemplateData {
   dateRange: string;
+  weekSummary: string | null;
   overdue: GroupedTask[];
   projects: { name: string; tasks: GroupedTask[] }[];
 }
@@ -46,6 +47,7 @@ export function buildDigest(
   timezone: string,
   locations?: Map<string, string>,
   lang: string = DEFAULT_LANG,
+  weekSummary: string | null = null,
 ): DigestOutput {
   const now = new Date();
   const rangeStart = startOfDay(now);
@@ -105,6 +107,7 @@ export function buildDigest(
 
   const templateData: TemplateData = {
     dateRange,
+    weekSummary,
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };

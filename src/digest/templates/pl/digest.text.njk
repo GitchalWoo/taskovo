@@ -1,3 +1,7 @@
+{% if weekSummary %}
+Podsumowanie: {{ weekSummary }}
+
+{% endif %}
 {% if overdue.length > 0 %}
 ⚠ Zaległe
 {% for task in overdue %}

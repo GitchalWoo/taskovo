@@ -67,16 +67,22 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 
 ### Embedded Local AI Model
 
-- Local inference via llama.cpp (HTTP server mode) — lightest overhead
-- Super-small model: DeepSeek R1 1.5B quantized (Q4_K_M, ~1GB RAM)
-- Configurable: user can opt into larger models if hardware allows
+- **Provider-agnostic**: calls any OpenAI-compatible `/v1/chat/completions` endpoint (Ollama, llama.cpp, OpenAI, Groq, etc.)
+- Configured via `LLM_BASE_URL` + optional `LLM_API_KEY` + `LLM_MODEL` — all optional, AI is not required
+- If `LLM_BASE_URL` is not set, all AI features are silently skipped (graceful degradation)
+- Local model (Ollama, llama.cpp) is a separate infra concern — commented-out example in `docker-compose.yml`
+- Current AI usage: **digest week summary** — LLM generates 2-3 sentence summary of upcoming week's tasks, displayed at the top of digest emails
+- System prompt is language-aware (en/pl), matched to `user.lang` from Todoist
+- 60s timeout on LLM calls — failure never blocks digest delivery
+- Avoid reasoning models (e.g. QwQ, DeepSeek-R1) — they waste tokens on thinking and need high `max_tokens`. Non-reasoning models like `nemotron-cascade-2` work well (~12s, clean output)
+- `max_tokens: 4096` to accommodate reasoning models if someone insists (reasoning goes into separate `reasoning` field on Ollama, `<think>` tags on others — both handled)
 - Used for SIMPLE tasks only:
+  - Week summary for digest emails (implemented)
   - Task classification (personal/work/urgent/category)
   - Short text generation (notification drafts, task descriptions)
   - Label suggestion based on task content
   - Simple extraction (extract date, person name, amount from task text)
 - NOT used for: complex reasoning, long-context summarization, multi-step planning
-- Fallback: rules work without AI — AI enriches but is not required
 
 ### External Integration Adapters
 
