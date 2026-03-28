@@ -44,7 +44,7 @@ export function buildDigest(
   const rangeStart = startOfDay(now);
   const rangeEnd = daysFromNow(now, 7);
 
-  const subject = `Your week ahead — ${formatDateRange(rangeStart, rangeEnd)}`;
+  const subject = `What's ahead: ${formatDateRange(rangeStart, rangeEnd)}`;
 
   const grouped = tasks
     .filter((t) => !t.isCompleted && t.due)
