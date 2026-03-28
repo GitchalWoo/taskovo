@@ -11,7 +11,7 @@
       {% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}
       {% if task.flag %} {{ task.flag }}{% endif %}
       {% if task.isRecurring %} 🔁{% endif %}
-      {% if task.description %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.description }}</span>{% endif %}
+      {% if task.location %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.location }}</span>{% endif %}
     </li>
     {% endfor %}
   </ul>
@@ -27,7 +27,7 @@
       {% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}
       {% if task.flag %} {{ task.flag }}{% endif %}
       {% if task.isRecurring %} 🔁{% endif %}
-      {% if task.description %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.description }}</span>{% endif %}
+      {% if task.location %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.location }}</span>{% endif %}
     </li>
     {% endfor %}
   </ul>

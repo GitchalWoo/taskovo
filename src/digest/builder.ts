@@ -19,6 +19,7 @@ interface GroupedTask {
   isOverdue: boolean;
   isRecurring: boolean;
   description: string;
+  location: string | null;
   durationFormatted: string | null;
   flag: string | null;
 }
@@ -54,10 +55,7 @@ export function buildDigest(
       const durationMinutes = t.duration
         ? t.duration.unit === "minute" ? t.duration.amount : t.duration.amount * 24 * 60
         : null;
-      const locationName = locations?.get(t.id);
-      const desc = locationName
-        ? (t.description ? `${locationName} — ${t.description}` : locationName)
-        : t.description;
+      const locationName = locations?.get(t.id) ?? null;
       return {
         content: t.content,
         dueDate,
@@ -67,7 +65,8 @@ export function buildDigest(
         projectName: projects.get(t.projectId)?.name ?? "Inbox",
         isOverdue: dueDate < startOfDay(now),
         isRecurring: t.due!.is_recurring,
-        description: desc,
+        description: t.description,
+        location: locationName,
         durationFormatted: durationMinutes ? formatDuration(durationMinutes) : null,
         flag: PRIORITY_FLAGS[t.priority] ?? null,
       };

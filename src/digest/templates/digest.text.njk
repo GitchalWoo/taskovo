@@ -4,7 +4,7 @@
 ⚠ Overdue
 {% for task in overdue %}
   • {{ task.content }}{% if task.dueString %} — {{ task.dueString }}{% endif %}{% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}{% if task.flag %} {{ task.flag }}{% endif %}{% if task.isRecurring %} 🔁{% endif %}
-{% if task.description %}      📍 {{ task.description }}
+{% if task.location %}      📍 {{ task.location }}
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -12,7 +12,7 @@
 {{ project.name }}
 {% for task in project.tasks %}
   • {{ task.content }}{% if task.dueString %} — {{ task.dueString }}{% endif %}{% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}{% if task.flag %} {{ task.flag }}{% endif %}{% if task.isRecurring %} 🔁{% endif %}
-{% if task.description %}      📍 {{ task.description }}
+{% if task.location %}      📍 {{ task.location }}
 {% endif %}
 {% endfor %}
 {% endfor %}
