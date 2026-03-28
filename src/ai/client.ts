@@ -75,7 +75,7 @@ export async function generateWeekSummary(
         max_tokens: 4096,
         temperature: 0.7,
       }),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(config.llmTimeout),
     });
 
     if (!response.ok) {

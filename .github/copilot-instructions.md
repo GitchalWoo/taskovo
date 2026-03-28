@@ -73,7 +73,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Local model (Ollama, llama.cpp) is a separate infra concern — commented-out example in `docker-compose.yml`
 - Current AI usage: **digest week summary** — LLM generates 2-3 sentence summary of upcoming week's tasks, displayed at the top of digest emails
 - System prompt is language-aware (en/pl), matched to `user.lang` from Todoist
-- 60s timeout on LLM calls — failure never blocks digest delivery
+- 120s default timeout on LLM calls (configurable via `LLM_TIMEOUT` env var in seconds) — failure never blocks digest delivery
 - Avoid reasoning models (e.g. QwQ, DeepSeek-R1) — they waste tokens on thinking and need high `max_tokens`. Non-reasoning models like `nemotron-cascade-2` work well (~12s, clean output)
 - `max_tokens: 4096` to accommodate reasoning models if someone insists (reasoning goes into separate `reasoning` field on Ollama, `<think>` tags on others — both handled)
 - Used for SIMPLE tasks only:
@@ -95,6 +95,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Current providers:
   - **AI week summary** (`src/ai/client.ts`): LLM generates 2-3 sentence overview. Gated by `LLM_BASE_URL`.
   - **Weather forecast** (`src/weather/client.ts`): 7-day forecast via Open-Meteo API (free, no key). Two config modes: `WEATHER_LOCATION=Warsaw` (geocoded via Open-Meteo geocoding API) or explicit `WEATHER_LATITUDE` + `WEATHER_LONGITUDE` (overrides location). Uses WMO weather codes for condition labels. 15s timeout on forecast, 10s on geocoding — failure never blocks digest.
+  - **F1 schedule** (`src/f1/client.ts`): Shows upcoming F1 race weekends (sessions in next 7 days) via Jolpica API (free Ergast successor, no key). Gated by `F1_SCHEDULE=true`. Returns race name, circuit, and all session times (FP1–3, Qualifying, Sprint/SprintQualifying, Race). 15s timeout — failure never blocks digest. API: `https://api.jolpi.ca/ergast/f1/current.json`.
 
 ### External Integration Adapters
 

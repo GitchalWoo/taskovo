@@ -23,6 +23,24 @@
     </div>
     {% endif %}
 
+    {% if f1 %}
+    <div style="margin-bottom: 24px; padding: 14px 16px; background-color: #fff5f5; border-radius: 8px; font-size: 13px; color: #333;">
+      <div style="font-weight: 600; margin-bottom: 10px;">🏎️ F1 w tym tygodniu</div>
+      {% for event in f1 %}
+      <div{% if not loop.first %} style="margin-top: 12px;"{% endif %}>
+        <div style="font-weight: 600; font-size: 14px;">{{ event.raceName }}</div>
+        <div style="font-size: 12px; color: #666; margin-bottom: 6px;">{{ event.circuitName }} · {{ event.locality }}, {{ event.country }}</div>
+        {% for session in event.sessions %}
+        <div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px;">
+          <span>{{ session.name }}</span>
+          <span style="color: #555;">{{ session.dateTime }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {% if overdue.length > 0 %}
     <div style="margin-bottom: 24px;">
       <div style="font-size: 16px; font-weight: 600; color: #c53030; margin-bottom: 10px;">Zaległe</div>

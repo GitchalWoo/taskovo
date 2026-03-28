@@ -9,6 +9,16 @@ Summary: {{ weekSummary }}
 {% endfor %}
 
 {% endif %}
+{% if f1 %}
+🏎️ F1 This Week
+{% for event in f1 %}
+{{ event.raceName }} — {{ event.circuitName }} ({{ event.locality }}, {{ event.country }})
+{% for session in event.sessions %}
+  {{ session.name }}: {{ session.dateTime }}
+{% endfor %}
+{% endfor %}
+
+{% endif %}
 {% if overdue.length > 0 %}
 ⚠ Overdue
 {% for task in overdue %}

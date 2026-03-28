@@ -6,6 +6,7 @@ import { buildDigest } from "./digest/builder";
 import { sendDigestEmail } from "./email/sender";
 import { generateWeekSummary } from "./ai/client";
 import { fetchWeekForecast, localizeWeather } from "./weather/client";
+import { fetchF1Schedule } from "./f1/client";
 import { Cron } from "croner";
 
 interface RecipientDigest {
@@ -56,7 +57,11 @@ async function runDigest(dryRun: boolean): Promise<void> {
 
   const config = loadConfig();
 
-  const [todoistData, forecast] = await Promise.all([fetchTodoistData(config), fetchWeekForecast(config)]);
+  const [todoistData, forecast, f1Schedule] = await Promise.all([
+    fetchTodoistData(config),
+    fetchWeekForecast(config),
+    fetchF1Schedule(config),
+  ]);
   const { tasks, projects, locations, collaborators, collaboratorStates, ownerId, ownerLang } = todoistData;
   const localizedForecast = forecast ? localizeWeather(forecast, ownerLang) : null;
 
@@ -101,6 +106,7 @@ async function runDigest(dryRun: boolean): Promise<void> {
       ownerLang,
       weekSummary,
       localizedForecast,
+      f1Schedule,
     );
 
     if (dryRun) {

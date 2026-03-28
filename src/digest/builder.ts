@@ -4,6 +4,7 @@ import fs from "fs";
 import type { TodoistTask } from "../todoist/types";
 import type { ProjectInfo } from "../todoist/client";
 import type { WeatherForecast } from "../weather/client";
+import type { F1Schedule } from "../f1/client";
 
 export interface DigestOutput {
   subject: string;
@@ -38,11 +39,26 @@ interface TemplateForecast {
   days: TemplateForecastDay[];
 }
 
+interface TemplateF1Session {
+  name: string;
+  dateTime: string; // formatted local date+time
+}
+
+interface TemplateF1Event {
+  raceName: string;
+  circuitName: string;
+  locality: string;
+  country: string;
+  round: number;
+  sessions: TemplateF1Session[];
+}
+
 /** Template data passed to Nunjucks */
 interface TemplateData {
   dateRange: string;
   weekSummary: string | null;
   forecast: TemplateForecast | null;
+  f1: TemplateF1Event[] | null;
   overdue: GroupedTask[];
   projects: { name: string; tasks: GroupedTask[] }[];
 }
@@ -64,6 +80,7 @@ export function buildDigest(
   lang: string = DEFAULT_LANG,
   weekSummary: string | null = null,
   forecast: WeatherForecast | null = null,
+  f1Schedule: F1Schedule | null = null,
 ): DigestOutput {
   const now = new Date();
   const rangeStart = startOfDay(now);
@@ -134,10 +151,35 @@ export function buildDigest(
       }
     : null;
 
+  const templateF1: TemplateF1Event[] | null =
+    f1Schedule && f1Schedule.events.length > 0
+      ? f1Schedule.events.map((event) => ({
+          raceName: event.raceName,
+          circuitName: event.circuitName,
+          locality: event.locality,
+          country: event.country,
+          round: event.round,
+          sessions: event.sessions.map((s) => {
+            const dt = new Date(`${s.date}T${s.time}`);
+            return {
+              name: s.name,
+              dateTime: dt.toLocaleDateString(locale, {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            };
+          }),
+        }))
+      : null;
+
   const templateData: TemplateData = {
     dateRange,
     weekSummary,
     forecast: templateForecast,
+    f1: templateF1,
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };
