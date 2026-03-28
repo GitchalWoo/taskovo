@@ -1,0 +1,38 @@
+<div style="font-family: sans-serif; max-width: 600px;">
+  <h2>{{ subject }}</h2>
+
+  {% if overdue.length > 0 %}
+  <h3 style="color: #e53e3e;">⚠ Overdue</h3>
+  <ul>
+    {% for task in overdue %}
+    <li>
+      {{ task.content }}
+      {% if task.dueString %} &mdash; {{ task.dueString }}{% endif %}
+      {% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}
+      {% if task.flag %} {{ task.flag }}{% endif %}
+      {% if task.isRecurring %} 🔁{% endif %}
+      {% if task.description %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.description }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% for project in projects %}
+  <h3>{{ project.name }}</h3>
+  <ul>
+    {% for task in project.tasks %}
+    <li>
+      {{ task.content }}
+      {% if task.dueString %} &mdash; {{ task.dueString }}{% endif %}
+      {% if task.durationFormatted %} ({{ task.durationFormatted }}){% endif %}
+      {% if task.flag %} {{ task.flag }}{% endif %}
+      {% if task.isRecurring %} 🔁{% endif %}
+      {% if task.description %}<br><span style="color: #666; font-size: 0.9em;">📍 {{ task.description }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+
+  <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 24px 0 12px;">
+  <p style="color: #999; font-size: 0.8em;">Sent by Taskovo with ❤️</p>
+</div>

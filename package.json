@@ -12,11 +12,13 @@
   "dependencies": {
     "@doist/todoist-api-typescript": "^4.0.3",
     "croner": "^9.0.0",
+    "nunjucks": "^3.2.4",
     "resend": "^4.1.2",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/nunjucks": "^3.2.6"
   },
   "peerDependencies": {
     "typescript": "^5"

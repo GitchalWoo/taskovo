@@ -1,3 +1,5 @@
+import nunjucks from "nunjucks";
+import path from "path";
 import type { TodoistTask } from "../todoist/types";
 import type { ProjectInfo } from "../todoist/client";
 
@@ -17,8 +19,19 @@ interface GroupedTask {
   isOverdue: boolean;
   isRecurring: boolean;
   description: string;
-  durationMinutes: number | null;
+  durationFormatted: string | null;
+  flag: string | null;
 }
+
+/** Template data passed to Nunjucks */
+interface TemplateData {
+  subject: string;
+  overdue: GroupedTask[];
+  projects: { name: string; tasks: GroupedTask[] }[];
+}
+
+const TEMPLATES_DIR = path.join(import.meta.dir, "templates");
+const nunjucksEnv = nunjucks.configure(TEMPLATES_DIR, { autoescape: true });
 
 export function buildDigest(
   tasks: TodoistTask[],
@@ -55,7 +68,8 @@ export function buildDigest(
         isOverdue: dueDate < startOfDay(now),
         isRecurring: t.due!.is_recurring,
         description: desc,
-        durationMinutes,
+        durationFormatted: durationMinutes ? formatDuration(durationMinutes) : null,
+        flag: PRIORITY_FLAGS[t.priority] ?? null,
       };
     })
     .filter((t) => t.isOverdue || (t.dueDate >= rangeStart && t.dueDate <= rangeEnd));
@@ -77,16 +91,20 @@ export function buildDigest(
 
   // Sort projects by Todoist order
   const projectOrder = buildProjectOrder(projects);
-  const sortedByProject = new Map(
-    [...byProject.entries()].sort((a, b) =>
-      (projectOrder.get(a[0]) ?? Infinity) - (projectOrder.get(b[0]) ?? Infinity)
-    ),
+  const sortedEntries = [...byProject.entries()].sort((a, b) =>
+    (projectOrder.get(a[0]) ?? Infinity) - (projectOrder.get(b[0]) ?? Infinity)
   );
 
-  const text = formatText(overdue, sortedByProject);
-  const html = formatHtml(overdue, sortedByProject);
+  const templateData: TemplateData = {
+    subject,
+    overdue,
+    projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
+  };
 
-  return { subject, text, html };
+  const html = nunjucksEnv.render("digest.html.njk", templateData);
+  const text = nunjucksEnv.render("digest.text.njk", templateData);
+
+  return { subject, text: text.trim(), html };
 }
 
 /** Build a flat sort-order map: projectName -> global order.
@@ -131,80 +149,6 @@ const PRIORITY_FLAGS: Record<number, string> = {
   3: "🟠", // p2
   2: "🔵", // p3
 };
-
-function formatTaskLine(task: GroupedTask): string {
-  let line = task.content;
-  if (task.dueString) line += ` — ${task.dueString}`;
-  if (task.durationMinutes) line += ` (${formatDuration(task.durationMinutes)})`;
-  if (PRIORITY_FLAGS[task.priority]) line += ` ${PRIORITY_FLAGS[task.priority]}`;
-  if (task.isRecurring) line += ` 🔁`;
-  if (task.description) line += `\n      📍 ${task.description}`;
-  return line;
-}
-
-function formatText(overdue: GroupedTask[], byProject: Map<string, GroupedTask[]>): string {
-  const sections: string[] = [];
-
-  if (overdue.length > 0) {
-    sections.push("⚠ Overdue");
-    for (const task of overdue) {
-      sections.push(`  • ${formatTaskLine(task)}`);
-    }
-    sections.push("");
-  }
-
-  for (const [project, tasks] of byProject) {
-    sections.push(project);
-    for (const task of tasks) {
-      sections.push(`  • ${formatTaskLine(task)}`);
-    }
-    sections.push("");
-  }
-
-  return sections.join("\n").trim();
-}
-
-function formatTaskHtml(task: GroupedTask): string {
-  let line = escapeHtml(task.content);
-  if (task.dueString) line += ` &mdash; ${escapeHtml(task.dueString)}`;
-  if (task.durationMinutes) line += ` (${formatDuration(task.durationMinutes)})`;
-  if (PRIORITY_FLAGS[task.priority]) line += ` ${PRIORITY_FLAGS[task.priority]}`;
-  if (task.isRecurring) line += ` 🔁`;
-  if (task.description) line += `<br><span style="color: #666; font-size: 0.9em;">📍 ${escapeHtml(task.description)}</span>`;
-  return line;
-}
-
-function formatHtml(overdue: GroupedTask[], byProject: Map<string, GroupedTask[]>): string {
-  const sections: string[] = [];
-  sections.push("<div style=\"font-family: sans-serif; max-width: 600px;\">");
-
-  if (overdue.length > 0) {
-    sections.push("<h3 style=\"color: #e53e3e;\">⚠ Overdue</h3><ul>");
-    for (const task of overdue) {
-      sections.push(`<li>${formatTaskHtml(task)}</li>`);
-    }
-    sections.push("</ul>");
-  }
-
-  for (const [project, tasks] of byProject) {
-    sections.push(`<h3>${escapeHtml(project)}</h3><ul>`);
-    for (const task of tasks) {
-      sections.push(`<li>${formatTaskHtml(task)}</li>`);
-    }
-    sections.push("</ul>");
-  }
-
-  sections.push("</div>");
-  return sections.join("\n");
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
