@@ -13,7 +13,6 @@ interface GroupedTask {
   content: string;
   dueDate: Date;
   dueString: string;
-  hasTime: boolean;
   priority: number;
   projectName: string;
   isOverdue: boolean;
@@ -26,7 +25,7 @@ interface GroupedTask {
 
 /** Template data passed to Nunjucks */
 interface TemplateData {
-  subject: string;
+  dateRange: string;
   overdue: GroupedTask[];
   projects: { name: string; tasks: GroupedTask[] }[];
 }
@@ -44,7 +43,7 @@ export function buildDigest(
   const rangeStart = startOfDay(now);
   const rangeEnd = daysFromNow(now, 7);
 
-  const subject = `What's ahead: ${formatDateRange(rangeStart, rangeEnd)}`;
+  const dateRange = formatDateRange(rangeStart, rangeEnd);
 
   const grouped = tasks
     .filter((t) => !t.isCompleted && t.due)
@@ -60,7 +59,6 @@ export function buildDigest(
         content: t.content,
         dueDate,
         dueString: formatTaskDue(dueDate, hasTime, timezone),
-        hasTime,
         priority: t.priority,
         projectName: projects.get(t.projectId)?.name ?? "Inbox",
         isOverdue: dueDate < startOfDay(now),
@@ -95,15 +93,16 @@ export function buildDigest(
   );
 
   const templateData: TemplateData = {
-    subject,
+    dateRange,
     overdue,
     projects: sortedEntries.map(([name, tasks]) => ({ name, tasks })),
   };
 
-  const html = nunjucksEnv.render("digest.html.njk", templateData);
+  const rawHtml = nunjucksEnv.render("digest.html.njk", templateData);
   const text = nunjucksEnv.render("digest.text.njk", templateData);
+  const subject = nunjucksEnv.render("digest.subject.njk", templateData).trim();
 
-  return { subject, text: text.trim(), html };
+  return { subject, text: text.trim(), html: rawHtml };
 }
 
 /** Build a flat sort-order map: projectName -> global order.
