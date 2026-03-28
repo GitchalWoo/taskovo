@@ -204,3 +204,10 @@ Chose TypeScript/Bun for:
 - Owner (authenticated user) gets all tasks; other collaborators get only tasks from their shared projects
 - `DIGEST_EMAIL_BLACKLIST` env var: comma-separated emails to exclude from receiving digests
 - Tasks have `responsible_uid` and `assigned_by_uid` fields linking to collaborator IDs — not used for digest filtering (project membership is the filter), but available for future assignment-based rules
+
+### Digest Email Templates
+- Templates use Nunjucks (`.njk` files in `src/digest/templates/`)
+- `digest.html.njk` for HTML email, `digest.text.njk` for plain text fallback
+- Subject is the email subject line — do NOT repeat it inside the email body
+- `location` and `description` are separate fields on the task model; location shows with 📍, description is available but not rendered in templates
+- Template data is pre-computed in `builder.ts` (flags, formatted durations) — keep templates logic-light
