@@ -50,7 +50,7 @@ export function loadConfig(): Config {
     llmBaseUrl: process.env["LLM_BASE_URL"] ?? null,
     llmApiKey: process.env["LLM_API_KEY"] ?? null,
     llmModel: process.env["LLM_MODEL"] ?? "nemotron-cascade-2",
-    llmTimeout: parseInt(process.env["LLM_TIMEOUT"] ?? "120", 10) * 1000,
+    llmTimeout: (parseInt(process.env["LLM_TIMEOUT"] || "120", 10) || 120) * 1000,
     weatherLocation: process.env["WEATHER_LOCATION"] ?? null,
     weatherLatitude: process.env["WEATHER_LATITUDE"] ?? null,
     weatherLongitude: process.env["WEATHER_LONGITUDE"] ?? null,
