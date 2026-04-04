@@ -19,7 +19,7 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile --production
+        run: bun install --frozen-lockfile --production --ignore-scripts
 
       - name: Send weekly digest
         run: bun run src/index.ts
