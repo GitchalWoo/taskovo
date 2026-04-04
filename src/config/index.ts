@@ -43,7 +43,7 @@ export function loadConfig(): Config {
     resendApiKey: required("RESEND_API_KEY"),
     digestFromEmail: required("DIGEST_FROM_EMAIL"),
     timezone: process.env["TIMEZONE"] ?? "Europe/Warsaw",
-    digestCron: process.env["DIGEST_CRON"] ?? "0 19 * * 0",
+    digestCron: process.env["DIGEST_CRON"] ?? "0 6 * * 1",
     stateDir: process.env["STATE_DIR"] ?? "/data/state",
     logLevel: (process.env["LOG_LEVEL"] as Config["logLevel"]) ?? "info",
     digestEmailBlacklist: parseEmailList(process.env["DIGEST_EMAIL_BLACKLIST"]),
