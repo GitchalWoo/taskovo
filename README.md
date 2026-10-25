@@ -70,13 +70,19 @@ Email delivery uses the current Resend SDK with cancellation, error status codes
 - Serve mode schedules in `TIMEZONE`, including daylight-saving changes, and prevents overlapping cron callbacks. The GitHub Actions schedule is still Monday at 06:00 **UTC**, independent of `DIGEST_CRON`.
 - Todoist and Resend requests use a 15-second timeout per attempt and at most three attempts for network failures, HTTP 429, and HTTP 5xx. `Retry-After` is honored up to 30 seconds; longer waits fail explicitly for a later rerun.
 - A recipient failure does not stop other recipients. The final log reports sent, skipped, and failed counts; incomplete one-shot runs exit unsuccessfully.
-- Delivery identity is the sender, normalized recipient, timezone, and date window. A rerun on the same local date skips confirmed deliveries. A new local date starts a new window and is a new digest.
+- Delivery identity is the sender, normalized recipient, timezone, and date window. **When the same persistent `STATE_DIR` is retained**, a rerun on the same local date skips confirmed deliveries. A new local date starts a new window and is a new digest.
 - Before sending, the original rendered email is saved under `STATE_DIR/deliveries/`. Pending retries reuse that payload and the same Resend idempotency key, even if task data or the AI summary changes. Confirmed deliveries remain skipped across restarts while state is retained.
 - If a pending recipient's project membership changes, cached-content delivery is blocked for reconciliation rather than risk sending tasks they can no longer access.
 - Resend retains idempotency keys for 24 hours. Unconfirmed local records older than 23 hours are blocked to leave a safety margin. Reconcile the delivery in Resend before changing its state: if confirmed, set its `sent` field to `true`; remove a pending record only after establishing that the email was not delivered. The logged delivery ID identifies the JSON filename.
 - Keep `STATE_DIR` private and persistent: it contains rendered task data, not API credentials. Delivery files are owner-readable/writable only. Losing state loses the durable duplicate-send protection; do not publish these files as Actions artifacts or caches.
 
-The bundled GitHub Actions workflow uses temporary state, so it has **no cross-run local delivery history**. Within Resend's 24-hour window, the stable key prevents duplicate sends, but changed email content on a fresh runner can produce an idempotency conflict that requires reconciliation. After key expiry, a fresh runner can send again. Use the container with its persistent volume when durable rerun guarantees are required.
+### GitHub Actions: provider-limited rerun protection
+
+The bundled GitHub Actions workflow uses temporary state, so it has **no cross-run local delivery history or durable rerun-safety guarantee**. Sent/pending records disappear with the runner. The workflow emits a warning and records this limitation in each run's summary.
+
+Cross-run duplicate protection relies **only on Resend retaining the same idempotency key for 24 hours**. Changed email content on a fresh runner can produce an idempotency conflict that requires reconciliation. A new local date creates a different window/key and is not a retry of the original delivery, even within 24 hours.
+
+**After key expiry, a fresh runner can send the same delivery again. Reconcile prior delivery in Resend before retrying when the original key is no longer retained.** Use the container with its persistent volume when durable delivery history is required; confirmed local records then remain effective beyond the provider's retention period. Do not use public-repository Actions artifacts or caches to retain private email payloads.
 
 ## Development checks
 

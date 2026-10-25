@@ -42,7 +42,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - The SDK logs raw API errors outside production. Container/workflow deployments set `NODE_ENV=production` so only the app's controlled error logging is used.
 - Persist the original pending email before sending: re-rendering AI/task content on a retry can conflict with Resend's same-key/same-payload requirement. Confirmed records prevent duplicates beyond Resend's 24-hour key retention; old uncertain records must fail for reconciliation, not silently resend.
 - Pending snapshots are tied to the recipient's project-membership scope; a scope change blocks cached-content retries to avoid sending newly inaccessible project data.
-- Delivery files contain private rendered task data. Keep them on the runtime volume, never in public GitHub Actions artifacts/caches. Hosted runners have no cross-run local history; do not claim durable deduplication there.
+- Delivery files contain private rendered task data. Keep them on the runtime volume, never in public GitHub Actions artifacts/caches. Hosted runners have no cross-run local history; their cross-run protection relies only on the same key within Resend's retention period, not durable deduplication. Keep the workflow warning/run summary explicit; a new local date changes the key and is a new delivery, not a protected retry.
 
 ### Rule Engine
 

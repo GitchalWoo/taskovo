@@ -25,6 +25,15 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --production --ignore-scripts
 
+      - name: Report delivery-state limitations
+        run: |
+          echo "::warning::Delivery state is temporary on this runner. Cross-run duplicate protection relies on reusing the same Resend idempotency key within its 24-hour retention period. Reconcile prior delivery before retrying after expiry."
+          printf '%s\n' \
+            '### Delivery-state retention' \
+            'This workflow does not retain sent/pending records across jobs. Resend protects the same idempotency key for 24 hours only; a new local date creates a different digest window and key.' \
+            'Reconcile prior delivery before retrying after key expiry. Use the container with its persistent state volume for durable delivery history.' \
+            >> "$GITHUB_STEP_SUMMARY"
+
       - name: Send weekly digest
         run: bun run src/index.ts
         env:
@@ -34,6 +43,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DIGEST_FROM_EMAIL: ${{ vars.DIGEST_FROM_EMAIL }}
           # Optional
+          # Job-local only; cross-run protection is limited to Resend's key retention.
           STATE_DIR: ${{ runner.temp }}/taskovo-state
           TIMEZONE: ${{ vars.TIMEZONE }}
           DIGEST_EMAIL_BLACKLIST: ${{ vars.DIGEST_EMAIL_BLACKLIST }}
