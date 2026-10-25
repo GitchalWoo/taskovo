@@ -1,5 +1,6 @@
 import type { Config } from "../config";
 import { logger } from "../utils/logger";
+import { digestWindow, type DigestWindow } from "../utils/dates";
 
 export interface WeatherDay {
   date: string; // ISO date string (YYYY-MM-DD)
@@ -171,26 +172,30 @@ async function resolveLocation(config: Config): Promise<ResolvedLocation | null>
   return null;
 }
 
-export async function fetchWeekForecast(config: Config): Promise<WeatherForecast | null> {
-  const resolved = await resolveLocation(config);
-  if (!resolved) {
-    logger.debug("Weather not configured, skipping forecast");
-    return null;
-  }
-
-  const { coords, locationName } = resolved;
-  const baseUrl = "https://api.open-meteo.com/v1/forecast";
-  const params = new URLSearchParams({
-    latitude: coords.latitude,
-    longitude: coords.longitude,
-    daily: "temperature_2m_max,temperature_2m_min,weather_code",
-    timezone: config.timezone,
-    forecast_days: "7",
-  });
-
-  const url = `${baseUrl}?${params}`;
-
+export async function fetchWeekForecast(
+  config: Config,
+  window: DigestWindow = digestWindow(config.timezone),
+): Promise<WeatherForecast | null> {
   try {
+    const resolved = await resolveLocation(config);
+    if (!resolved) {
+      logger.debug("Weather not configured, skipping forecast");
+      return null;
+    }
+
+    const { coords, locationName } = resolved;
+    const baseUrl = "https://api.open-meteo.com/v1/forecast";
+    const params = new URLSearchParams({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      daily: "temperature_2m_max,temperature_2m_min,weather_code",
+      timezone: config.timezone,
+      start_date: window.start,
+      end_date: window.end,
+    });
+
+    const url = `${baseUrl}?${params}`;
+
     logger.info("Fetching 7-day weather forecast", { lat: coords.latitude, lon: coords.longitude });
 
     const response = await fetch(url, {

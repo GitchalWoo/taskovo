@@ -6,6 +6,10 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch: # Allow manual trigger
 
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: false
+
 jobs:
   send-digest:
     runs-on: ubuntu-latest
@@ -24,11 +28,13 @@ jobs:
       - name: Send weekly digest
         run: bun run src/index.ts
         env:
+          NODE_ENV: production
           # Required
           TODOIST_API_TOKEN: ${{ secrets.TODOIST_API_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DIGEST_FROM_EMAIL: ${{ vars.DIGEST_FROM_EMAIL }}
           # Optional
+          STATE_DIR: ${{ runner.temp }}/taskovo-state
           TIMEZONE: ${{ vars.TIMEZONE }}
           DIGEST_EMAIL_BLACKLIST: ${{ vars.DIGEST_EMAIL_BLACKLIST }}
           LOG_LEVEL: ${{ vars.LOG_LEVEL }}

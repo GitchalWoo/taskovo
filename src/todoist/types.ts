@@ -46,10 +46,6 @@ export interface TodoistCollaboratorState {
   projectId: string;
 }
 
-export interface SyncState {
-  token: string;
-}
-
 export interface TodoistLocationReminder {
   id: string;
   item_id: string;

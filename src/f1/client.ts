@@ -1,5 +1,6 @@
 import type { Config } from "../config";
 import { logger } from "../utils/logger";
+import { digestWindow, inWindow, localDate, type DigestWindow } from "../utils/dates";
 
 export interface F1Session {
   name: string; // "FP1", "FP2", "FP3", "Qualifying", "Sprint Qualifying", "Sprint", "Race"
@@ -86,7 +87,10 @@ function extractSessions(race: JolpicaRace): F1Session[] {
 }
 
 /** Fetch the current F1 season schedule and return events with any session in the next 7 days. */
-export async function fetchF1Schedule(config: Config): Promise<F1Schedule | null> {
+export async function fetchF1Schedule(
+  config: Config,
+  window: DigestWindow = digestWindow(config.timezone),
+): Promise<F1Schedule | null> {
   if (!config.f1Schedule) {
     logger.debug("F1 schedule not enabled, skipping");
     return null;
@@ -107,18 +111,13 @@ export async function fetchF1Schedule(config: Config): Promise<F1Schedule | null
     const data = (await response.json()) as JolpicaResponse;
     const { season, Races } = data.MRData.RaceTable;
 
-    const now = new Date();
-    const nowDate = now.toISOString().slice(0, 10);
-    const weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    const weekEndDate = weekEnd.toISOString().slice(0, 10);
-
     const upcoming: F1Event[] = [];
 
     for (const race of Races) {
       const sessions = extractSessions(race);
-      // Include event if ANY session falls within today → +7 days
-      const hasUpcoming = sessions.some((s) => s.date >= nowDate && s.date <= weekEndDate);
+      const hasUpcoming = sessions.some((s) =>
+        inWindow(localDate(new Date(`${s.date}T${s.time}`), config.timezone), window),
+      );
       if (!hasUpcoming) continue;
 
       upcoming.push({

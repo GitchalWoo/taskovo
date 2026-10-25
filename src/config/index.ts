@@ -38,11 +38,17 @@ function parseEmailList(value: string | undefined): Set<string> {
 }
 
 export function loadConfig(): Config {
+  const timezone = process.env["TIMEZONE"]?.trim() || "Europe/Warsaw";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: timezone });
+  } catch {
+    throw new Error("TIMEZONE must be a valid IANA timezone");
+  }
   return {
     todoistApiToken: required("TODOIST_API_TOKEN"),
     resendApiKey: required("RESEND_API_KEY"),
     digestFromEmail: required("DIGEST_FROM_EMAIL"),
-    timezone: process.env["TIMEZONE"] ?? "Europe/Warsaw",
+    timezone,
     digestCron: process.env["DIGEST_CRON"] ?? "0 6 * * 1",
     stateDir: process.env["STATE_DIR"] ?? "/data/state",
     logLevel: (process.env["LOG_LEVEL"] as Config["logLevel"]) ?? "info",

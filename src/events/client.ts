@@ -1,5 +1,6 @@
 import type { Config } from "../config";
 import { logger } from "../utils/logger";
+import { digestWindow, inWindow, type DigestWindow } from "../utils/dates";
 
 export interface LocalEvent {
   title: string;
@@ -17,11 +18,8 @@ export interface LocalEvents {
 
 const BASE_URL = "https://waw4free.pl";
 
-function buildUrl(config: Config): string {
-  const today = new Date();
-  const dd = String(today.getDate()).padStart(2, "0");
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const yyyy = today.getFullYear();
+function buildUrl(config: Config, window: DigestWindow): string {
+  const [yyyy, mm, dd] = window.start.split("-");
   const dateStr = `${dd}.${mm}.${yyyy}`;
 
   const params = new URLSearchParams({
@@ -122,13 +120,16 @@ function decodeHtmlEntities(str: string): string {
 }
 
 /** Scrape local events from waw4free.pl for the next 7 days. */
-export async function fetchLocalEvents(config: Config): Promise<LocalEvents | null> {
+export async function fetchLocalEvents(
+  config: Config,
+  window: DigestWindow = digestWindow(config.timezone),
+): Promise<LocalEvents | null> {
   if (!config.eventsEnabled) {
     logger.debug("Local events not enabled, skipping");
     return null;
   }
 
-  const url = buildUrl(config);
+  const url = buildUrl(config, window);
 
   try {
     logger.info("Fetching local events", { url: url.replace(/wydarzenia=[^&]+/, "wydarzenia=...") });
@@ -172,16 +173,9 @@ export async function fetchLocalEvents(config: Config): Promise<LocalEvents | nu
       if (event) events.push(event);
     }
 
-    // Filter to 7-day window matching the digest range
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
-    const weekEnd = new Date(now);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    const weekEndStr = weekEnd.toISOString().slice(0, 10);
-
     const filtered = events.filter((e) => {
       if (!e.date) return true; // keep events with unparseable dates
-      return e.date >= todayStr && e.date <= weekEndStr;
+      return inWindow(e.date, window);
     });
 
     if (filtered.length === 0) {

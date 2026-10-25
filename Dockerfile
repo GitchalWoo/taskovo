@@ -22,4 +22,6 @@ RUN mkdir -p /data/state && chown bun:bun /data/state
 
 USER bun
 
+ENV NODE_ENV=production
+
 CMD ["bun", "run", "src/index.ts", "--serve"]

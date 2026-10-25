@@ -20,7 +20,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Primary knowledge base, task source, AND persistence layer
 - **Todoist API v1** (`api.todoist.com/api/v1/`) — unified Sync + REST API
 - Sync endpoint (`POST /api/v1/sync`) for efficient reads (single call returns all data) and batched writes
-- Incremental sync via `sync_token` — first call with `*`, subsequent calls get only changes
+- Current digests always request a full sync: an incremental cursor without a persisted resource cache loses unchanged tasks, collaborators, and owner data. Incremental polling is future work and must merge deltas into a complete cache.
 - Writes batched via Sync commands (up to 100 commands per request), with UUID-based idempotency
 - REST endpoints for individual CRUD operations when batching isn't needed
 - **Rate limits**: 1000 partial syncs / 15min, 100 full syncs / 15min — 60s polling uses ~15 requests/15min, well within limits
@@ -29,7 +29,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - State tracking: use Todoist labels/comments to mark processed items (e.g., label `@taskovo-processed`)
 - Labels are plain strings on tasks (e.g., `labels: ["Food", "Shopping"]`)
 - Todoist is also the error sink — if something fails, create a task about it
-- Sync token stored in local JSON file for incremental sync across restarts
+- Legacy sync-token files are ignored; digest delivery state, not Todoist snapshots or raw user objects, is persisted locally.
 - API auth: Bearer token via Authorization header
 
 ### Notifications: Resend
@@ -37,6 +37,12 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - Outbound communication to other participants via Resend SaaS (email-based notifications)
 - Used to notify people about events, task assignments, reminders, escalations
 - Templates for different notification types
+- Use the Resend SDK's `signal`, response `headers`, and `error.statusCode` for shared bounded retries. Older SDK releases lacked these public surfaces; check current SDK capabilities before replacing a library with raw HTTP.
+- The SDK converts transport/cancellation failures into `application_error` with null status; translate these explicitly into retryable transport failures, while validation/idempotency errors must fail without retries.
+- The SDK logs raw API errors outside production. Container/workflow deployments set `NODE_ENV=production` so only the app's controlled error logging is used.
+- Persist the original pending email before sending: re-rendering AI/task content on a retry can conflict with Resend's same-key/same-payload requirement. Confirmed records prevent duplicates beyond Resend's 24-hour key retention; old uncertain records must fail for reconciliation, not silently resend.
+- Pending snapshots are tied to the recipient's project-membership scope; a scope change blocks cached-content retries to avoid sending newly inaccessible project data.
+- Delivery files contain private rendered task data. Keep them on the runtime volume, never in public GitHub Actions artifacts/caches. Hosted runners have no cross-run local history; do not claim durable deduplication there.
 
 ### Rule Engine
 
@@ -138,20 +144,19 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 - **AI Runtime**: llama.cpp server (lightweight, C++ binary, GGUF models)
 - **Config format**: YAML for rules and adapters, .env for secrets
 - **Secrets**: `.env` file (Todoist API token, Resend API key, etc.) — loaded natively by Bun
-- **Local state**: JSON files only (no databases) — sync cursors, cron timestamps, adapter dedup state
+- **Local state**: JSON files only (no databases) — delivery snapshots/confirmations; future cron timestamps and adapter dedup state
 - **State storage**: Docker volume mount (e.g., `/data/state/`)
 - **Logging**: stdout (structured JSON, suitable for `docker logs`)
 - **Testing**: `bun test` (built-in, Jest-compatible)
 - **Deployment**: Any Linux device, Docker-based automation platforms
 - **Hardware target**: 8GB RAM max (model + app + OS must fit)
-- **Key dependencies**: `@doist/todoist-api-typescript` (official SDK), `resend` (official SDK), `yaml` (YAML parsing), `croner` (cron scheduling)
 
 ## Key Design Principles
 
 - **OPEN SOURCE REPO — all code is public. Zero secrets in code, config files, logs, or commit history.**
 - Container-first: everything runs in Docker
 - Privacy-first: local AI model, no data leaves the device unless explicitly configured
-- Todoist-as-primary-state: Todoist labels/comments track processing state; local JSON files only for cursors/dedup
+- Todoist-as-primary-state: Todoist labels/comments track processing state; local JSON files also retain email payloads/confirmations so uncertain delivery retries are safe
 - No databases: zero SQL, zero embedded DB — only JSON files for minimal local state
 - Simple configuration: rules in YAML files, secrets in .env
 - Graceful degradation: AI is optional enrichment, rules work without it
@@ -174,7 +179,7 @@ Todoist serves as both the primary data source AND the persistence/state layer. 
 
 Chose TypeScript/Bun for:
 
-- Official SDKs for both Todoist and Resend
+- Official SDK availability for integrations
 - Native TypeScript execution (no build step for dev)
 - Type safety for rule engine validation
 - Built-in test runner, .env loading, file I/O utilities
@@ -212,11 +217,14 @@ Chose TypeScript/Bun for:
 
 ### Environment
 
+- Keep the unused Todoist SDK out of runtime dependencies: digest reads use raw Sync API snapshots, so installing it only adds an unused HTTP/validation dependency tree.
+- The `@humanfs/node` override enforces a patched compatible floor in ESLint's transitive tree; updating ESLint alone retained the vulnerable locked version. Retain audit coverage when removing this floor.
+
 - Bun PATH requires `$HOME/.bun/bin`
 - Container runtime is **podman** (not docker), use `podman-compose`
 - Dockerfile needs fully-qualified image refs (`docker.io/oven/bun:1-alpine`) for podman
 - `/data/state` must be `chown bun:bun` before `USER bun` in Dockerfile
-- `/data/state` ENOENT warning is expected locally — path only exists in container
+- Local sends need a writable `STATE_DIR` (e.g. `./state`); state persistence failures must block sending rather than lose duplicate protection.
 
 ### Todoist API Quirks
 
@@ -244,6 +252,9 @@ Chose TypeScript/Bun for:
 - Tasks have `responsible_uid` and `assigned_by_uid` fields linking to collaborator IDs — not used for digest filtering (project membership is the filter), but available for future assignment-based rules
 
 ### Digest Email Templates
+
+- Compute one window per run: today plus six days in the configured timezone. Date-only task/weather/event dates are calendar dates, not UTC instants; timed task/F1 values must be converted explicitly. AI task selection shares the same window, excluding overdue tasks while the email lists them separately.
+- Floating Todoist due times use their due timezone, falling back to the configured timezone, never the process timezone. Nonexistent DST wall times fail explicitly rather than silently shifting a deadline.
 
 - Templates use Nunjucks (`.njk` files in `src/digest/templates/{lang}/`)
 - Language folders: `en/` (default fallback), `pl/`, etc. — resolved from `user.lang` at runtime

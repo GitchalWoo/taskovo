@@ -6,6 +6,7 @@ import type { ProjectInfo } from "../todoist/client";
 import type { WeatherForecast } from "../weather/client";
 import type { F1Schedule } from "../f1/client";
 import type { LocalEvents } from "../events/client";
+import { digestWindow, dueInstant, dueLocalDate, inWindow, type DigestWindow } from "../utils/dates";
 
 export interface DigestOutput {
   subject: string;
@@ -16,6 +17,7 @@ export interface DigestOutput {
 interface GroupedTask {
   content: string;
   dueDate: Date;
+  localDate: string;
   dueString: string;
   priority: number;
   projectName: string;
@@ -93,20 +95,18 @@ export function buildDigest(
   forecast: WeatherForecast | null = null,
   f1Schedule: F1Schedule | null = null,
   localEvents: LocalEvents | null = null,
+  window: DigestWindow = digestWindow(timezone),
 ): DigestOutput {
-  const now = new Date();
-  const rangeStart = startOfDay(now);
-  const rangeEnd = daysFromNow(now, 7);
-
   const locale = langToLocale(lang);
-  const dateRange = formatDateRange(rangeStart, rangeEnd, locale);
+  const dateRange = formatDateRange(window, locale);
 
   const grouped = tasks
     .filter((t) => !t.isCompleted && t.due)
     .map((t): GroupedTask => {
       const dateStr = t.due!.date;
       const hasTime = dateStr.includes("T");
-      const dueDate = new Date(dateStr);
+      const dueDate = dueInstant(t.due!, timezone);
+      const taskDate = dueLocalDate(t.due!, timezone);
       const durationMinutes = t.duration
         ? t.duration.unit === "minute"
           ? t.duration.amount
@@ -116,10 +116,11 @@ export function buildDigest(
       return {
         content: t.content,
         dueDate,
+        localDate: taskDate,
         dueString: formatTaskDue(dueDate, hasTime, timezone, locale),
         priority: t.priority,
         projectName: projects.get(t.projectId)?.name ?? "Inbox",
-        isOverdue: dueDate < startOfDay(now),
+        isOverdue: taskDate < window.start,
         isRecurring: t.due!.is_recurring,
         description: t.description,
         location: locationName,
@@ -127,7 +128,7 @@ export function buildDigest(
         flag: PRIORITY_FLAGS[t.priority] ?? null,
       };
     })
-    .filter((t) => t.isOverdue || (t.dueDate >= rangeStart && t.dueDate <= rangeEnd));
+    .filter((t) => t.isOverdue || inWindow(t.localDate, window));
 
   // Group by project, overdue first
   const overdue = grouped.filter((t) => t.isOverdue).sort(compareTasks);
@@ -155,7 +156,10 @@ export function buildDigest(
         locationName: forecast.locationName,
         days: forecast.days.map((d) => ({
           date: d.date,
-          dayOfWeek: new Date(d.date).toLocaleDateString(locale, { weekday: "short" }),
+          dayOfWeek: new Date(`${d.date}T00:00:00Z`).toLocaleDateString(locale, {
+            weekday: "short",
+            timeZone: "UTC",
+          }),
           tempMax: d.tempMax,
           tempMin: d.tempMin,
           condition: d.condition,
@@ -181,6 +185,7 @@ export function buildDigest(
                 month: "short",
                 hour: "2-digit",
                 minute: "2-digit",
+                timeZone: timezone,
               }),
             };
           }),
@@ -262,19 +267,6 @@ const PRIORITY_FLAGS: Record<number, string> = {
   2: "🔵", // p3
 };
 
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function daysFromNow(date: Date, days: number): Date {
-  const d = startOfDay(date);
-  d.setDate(d.getDate() + days);
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-
 const LANG_LOCALE_MAP: Record<string, string> = {
   en: "en-GB",
   pl: "pl-PL",
@@ -284,15 +276,18 @@ function langToLocale(lang: string): string {
   return LANG_LOCALE_MAP[lang] ?? "en-GB";
 }
 
-function formatDateRange(start: Date, end: Date, locale: string): string {
-  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+function formatDateRange(window: DigestWindow, locale: string): string {
+  const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", timeZone: "UTC" };
+  const start = new Date(`${window.start}T00:00:00Z`);
+  const end = new Date(`${window.end}T00:00:00Z`);
   return `${start.toLocaleDateString(locale, opts)} – ${end.toLocaleDateString(locale, opts)}`;
 }
 
-function formatTaskDue(date: Date, hasTime: boolean, _timezone: string, locale: string): string {
-  const dayOpts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" };
+function formatTaskDue(date: Date, hasTime: boolean, timezone: string, locale: string): string {
+  const timeZone = hasTime ? timezone : "UTC";
+  const dayOpts: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short", timeZone };
   const dayStr = date.toLocaleDateString(locale, dayOpts);
   if (!hasTime) return dayStr;
-  const timeStr = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  const timeStr = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", timeZone });
   return `${dayStr}, ${timeStr}`;
 }

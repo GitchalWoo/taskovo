@@ -4,9 +4,9 @@ import type {
   TodoistLocationReminder,
   TodoistCollaborator,
   TodoistCollaboratorState,
-  SyncState,
 } from "./types";
 import { logger } from "../utils/logger";
+import { fetchWithRetry } from "../utils/http";
 
 export interface ProjectInfo {
   name: string;
@@ -25,31 +25,26 @@ export interface TodoistData {
 }
 
 export async function fetchTodoistData(config: Config): Promise<TodoistData> {
-  const syncToken = await loadSyncToken(config.stateDir);
+  logger.info("Fetching full snapshot from Todoist Sync API");
 
-  logger.info("Fetching data from Todoist Sync API", { syncToken: syncToken ? "incremental" : "full" });
-
-  const response = await fetch("https://api.todoist.com/api/v1/sync", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.todoistApiToken}`,
-      "Content-Type": "application/json",
+  const response = await fetchWithRetry(
+    "https://api.todoist.com/api/v1/sync",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.todoistApiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sync_token: "*",
+        resource_types: ["items", "projects", "collaborators", "collaborator_states", "user"],
+      }),
     },
-    body: JSON.stringify({
-      sync_token: syncToken ?? "*",
-      resource_types: ["items", "projects", "collaborators", "collaborator_states", "user"],
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Todoist API error: ${response.status} ${response.statusText}`);
-  }
+    "Todoist",
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- raw Todoist Sync API response shape
   const data = (await response.json()) as Record<string, any>;
-
-  // Save sync token for next run
-  await saveSyncToken(config.stateDir, data.sync_token);
 
   const projects = new Map<string, ProjectInfo>();
   for (const project of data.projects ?? []) {
@@ -107,13 +102,13 @@ export async function fetchTodoistData(config: Config): Promise<TodoistData> {
 async function fetchLocationReminders(token: string): Promise<Map<string, string>> {
   const locations = new Map<string, string>();
   try {
-    const response = await fetch("https://api.todoist.com/api/v1/location_reminders", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      logger.warn("Failed to fetch location reminders", { status: response.status });
-      return locations;
-    }
+    const response = await fetchWithRetry(
+      "https://api.todoist.com/api/v1/location_reminders",
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+      "Todoist location reminders",
+    );
     const data = (await response.json()) as { results: TodoistLocationReminder[] };
     for (const loc of data.results) {
       if (!loc.is_deleted) {
@@ -124,28 +119,4 @@ async function fetchLocationReminders(token: string): Promise<Map<string, string
     logger.warn("Failed to fetch location reminders", { error: String(error) });
   }
   return locations;
-}
-
-async function loadSyncToken(stateDir: string): Promise<string | null> {
-  const path = `${stateDir}/sync-token.json`;
-  try {
-    const file = Bun.file(path);
-    if (await file.exists()) {
-      const state: SyncState = await file.json();
-      return state.token;
-    }
-  } catch {
-    logger.debug("No existing sync token found, will do full sync");
-  }
-  return null;
-}
-
-async function saveSyncToken(stateDir: string, token: string): Promise<void> {
-  const path = `${stateDir}/sync-token.json`;
-  try {
-    await Bun.write(path, JSON.stringify({ token } satisfies SyncState, null, 2));
-    logger.debug("Saved sync token");
-  } catch (error) {
-    logger.warn("Failed to save sync token", { error: String(error) });
-  }
 }

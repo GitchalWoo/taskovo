@@ -7,6 +7,7 @@
     "start": "bun run src/index.ts",
     "start:serve": "bun run src/index.ts --serve",
     "test": "bun test",
+    "audit": "bun audit",
     "typecheck": "bunx tsc --noEmit",
     "lint": "bunx eslint .",
     "lint:fix": "bunx eslint . --fix",
@@ -25,24 +26,26 @@
     ]
   },
   "dependencies": {
-    "@doist/todoist-api-typescript": "^4.0.3",
     "croner": "^9.0.0",
     "nunjucks": "^3.2.4",
-    "resend": "^4.1.2",
+    "resend": "^6.34.1",
     "yaml": "^2.7.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
     "@types/nunjucks": "^3.2.6",
-    "eslint": "^10.1.0",
+    "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.8.1",
-    "typescript-eslint": "^8.57.2"
+    "typescript-eslint": "^8.72.0"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "overrides": {
+    "@humanfs/node": "^0.16.8"
   }
 }
